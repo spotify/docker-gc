@@ -1,0 +1,5 @@
+docker-gc (0.0.1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Daniel Norberg <dano@spotify.com>  Sun, 22 Jun 2014 20:20:20 +0000

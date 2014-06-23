@@ -1,0 +1,10 @@
+Source: docker-gc
+Section: admin
+Priority: optional
+Maintainer: Daniel Norberg <dano@spotify.com>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.5
+
+Package: docker-gc
+Architecture: all
+Description: Docker garbage collection of containers and images.
