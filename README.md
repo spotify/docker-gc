@@ -9,8 +9,8 @@ A simple docker container and image garbage collection script.
 
 Although docker normally prevents removal of images that are in use by
 containers, we take extra care to not remove any image tags (e.g. ubuntu:14.04,
-busybox, etc) that are in use by containers. A naive "docker rmi `docker images
--q`" will leave images stripped of all tags, forcing docker to re-pull the
+busybox, etc) that are in use by containers. A naive `docker rmi $(docker images
+-q)` will leave images stripped of all tags, forcing docker to re-pull the
 repositories when starting new containers even though the images themselves are
 still on disk.
 
