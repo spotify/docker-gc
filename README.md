@@ -47,7 +47,9 @@ Usage
 -----
 
 To use the script manually, run `docker-gc -f` to override the lastgc timestamp
-guard. This will immediately remove any exited containers. To remove images, run
-`docker-gc -f` a second time. Only images that existed during the previous run
-are removed. This is in order to keep unused images around for at least an hour
-when run as a cron job, to minimize interference with manual docker pulls etc.
+guard.  The first run just records all currently existing containers and
+images. To actually collect garbage containers and images, run `docker-gc -f` a
+second time. Only containers and images that existed during the first run
+are removed. This is in order to keep containers and images around for at least
+an hour when run as a cron job, to avoid interference with manual docker usage
+and forensics.
