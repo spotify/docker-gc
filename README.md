@@ -15,8 +15,8 @@ repositories when starting new containers even though the images themselves are
 still on disk.
 
 This script is intended to be run as a cron job. It is stateful and stores its
-between-run state in /var/run/docker-gc by default, overridable by setting
-$STATE_DIR.
+between-run state in `/var/run/docker-gc` by default, overridable by setting
+`$STATE_DIR`.
 
 
 Building
