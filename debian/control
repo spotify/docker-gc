@@ -7,4 +7,5 @@ Standards-Version: 3.9.5
 
 Package: docker-gc
 Architecture: all
+Depends: python, ${misc:Depends}
 Description: Docker garbage collection of containers and images.
