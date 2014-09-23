@@ -18,11 +18,8 @@ set -o nounset
 set -o errexit
 
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
-
-# Seconds since last file modification
-function FileAge() {
-  echo $((`date +%s` - `stat -c %Y $1`))
-}
+STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
+DOCKER=${DOCKER:=docker}
 
 # Elapsed time since a docker timestamp, in seconds
 function ElapsedTime() {
@@ -34,48 +31,8 @@ print int((now - exited).total_seconds())
 END
 }
 
-# Convert seconds to hours
-function SecondsToHours() {
-  echo -n "$(($1/3600))"
-}
-
-FORCE=
-
-while getopts ":f" opt; do
-  case $opt in
-    f)
-      FORCE=1
-      ;;
-    \?)
-      echo "Invalid option: -$OPTARG" >&2
-      ;;
-  esac
-done
-
-STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 
 cd "$STATE_DIR"
-
-# Check that the last docker gc was performed more than an hour ago
-if [[ $FORCE ]]; then
-  echo "Forcing docker gc"
-else
-  if [[ ! -a lastgc ]]; then
-    touch lastgc
-    echo "First docker gc run, not performing docker gc"
-    exit 0
-  else
-    echo "Last docker gc $(SecondsToHours $(FileAge lastgc)) hour(s) ago"
-    if ! test `find lastgc -mmin +60`; then
-      echo "Too soon to perform docker gc"
-      exit 0
-    else
-      echo "Performing docker gc"
-    fi
-  fi
-fi
-
-DOCKER=${DOCKER:=docker}
 
 # Verify that docker is reachable
 $DOCKER version 1>/dev/null
@@ -90,16 +47,16 @@ $DOCKER ps -q --no-trunc | sort | uniq > containers.running
 comm -23 containers.all containers.running > containers.exited
 
 # Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
-echo -n "" > containers.reap
+echo -n "" > containers.reap.tmp
 cat containers.exited | while read line
 do
     EXITED=$(docker inspect -f '{{.State.FinishedAt}}' ${line})
     ELAPSED=$(ElapsedTime $EXITED)
-
     if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
-        echo $line >> containers.reap
+        echo $line >> containers.reap.tmp
     fi
 done
+cat containers.reap.tmp | sort | uniq > containers.reap
 
 # List containers that we will keep.
 comm -23 containers.all containers.reap > containers.keep
@@ -113,10 +70,8 @@ xargs -r -n 1 docker inspect -f '{{.Id}}' 2>/dev/null |
 sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
-touch images.all.prev
 $DOCKER images -q --no-trunc | sort | uniq > images.all
-comm -23 images.all.prev images.used > images.reap
-mv images.all images.all.prev
+comm -23 images.all images.used > images.reap
 
 # Reap containers.
 xargs -r -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null
@@ -124,5 +79,3 @@ xargs -r -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null
 # Reap images.
 xargs -r -n 1 $DOCKER rmi < images.reap &>/dev/null
 
-# Update lastgc timestamp
-touch lastgc
