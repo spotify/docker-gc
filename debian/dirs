@@ -1,1 +1,1 @@
-var/run/docker-gc
+var/lib/docker-gc

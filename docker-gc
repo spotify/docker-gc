@@ -12,7 +12,7 @@
 #       forcing users to re-pull the repositories even though the images
 #       themselves are still on disk.
 
-# Note: State is stored in $STATE_DIR, defaulting to /var/run/docker-gc
+# Note: State is stored in $STATE_DIR, defaulting to /var/lib/docker-gc
 
 set -o nounset
 set -o errexit
@@ -40,7 +40,7 @@ while getopts ":f" opt; do
   esac
 done
 
-STATE_DIR=${STATE_DIR:=/var/run/docker-gc}
+STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 
 cd "$STATE_DIR"
 
