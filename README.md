@@ -4,8 +4,7 @@ docker-gc
 A simple docker container and image garbage collection script.
 
 * Containers that exited more than an hour ago are removed.
-* Images that have existed more than an hour and are not in use by any
-  containers are removed.
+* Images that don't belong to any remaining container after that are removed.
 
 Although docker normally prevents removal of images that are in use by
 containers, we take extra care to not remove any image tags (e.g. ubuntu:14.04,
@@ -14,10 +13,7 @@ busybox, etc) that are in use by containers. A naive `docker rmi $(docker images
 repositories when starting new containers even though the images themselves are
 still on disk.
 
-This script is intended to be run as a cron job. It is stateful and stores its
-between-run state in `/var/lib/docker-gc` by default, overridable by setting
-`$STATE_DIR`.
-
+This script is intended to be run as a cron job.
 
 Building
 --------
@@ -46,10 +42,4 @@ file into `/etc/cron.hourly/`.
 Usage
 -----
 
-To use the script manually, run `docker-gc -f` to override the lastgc timestamp
-guard.  The first run just records all currently existing containers and
-images. To actually collect garbage containers and images, run `docker-gc -f` a
-second time. Only containers and images that existed during the first run
-are removed. This is in order to keep containers and images around for at least
-an hour when run as a cron job, to avoid interference with manual docker usage
-and forensics.
+To use the script manually, run `docker-gc`.
