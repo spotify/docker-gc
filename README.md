@@ -43,3 +43,26 @@ Usage
 -----
 
 To use the script manually, run `docker-gc`.
+
+
+Excluding Images From Garbage Collection
+----------------------------------------
+
+There can be images that are large that serve as a common base for
+many application containers, and as such, make sense to pin to the
+machine, as many derivative containers will use it.  This can save
+time in pulling those kinds of images.  There may be other reasons to
+exclude images from garbage collection.  To do so, create
+`/etc/docker-gc-exclude`, or if you want the file to be read from
+elsewhere, set the `EXCLUDE_FROM_GC` environment variable to its
+location.  This file can contain image name patterns (in the `grep`
+sense), one per line, such as `spotify/cassandra:latest` or it can
+contain image ids (truncated to the length shown in `docker images`
+which is 12.
+
+An example excludes file might contain:
+```
+spotify/cassandra:latest
+9681260c3ad5
+```
+
