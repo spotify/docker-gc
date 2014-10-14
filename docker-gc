@@ -1,5 +1,24 @@
 #!/bin/bash
 
+# Copyright (c) 2014 Spotify AB.
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 # This script attempts to garbage collect docker containers and images.
 # Containers that exited more than an hour ago are removed.
 # Images that have existed more than an hour and are not in use by any
@@ -20,6 +39,9 @@ set -o errexit
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 DOCKER=${DOCKER:=docker}
+EXCLUDE_FROM_GC=${EXCLUDE_FROM_GC:=/etc/docker-gc-exclude}
+
+EXCLUDE_IDS_FILE="$STATE_DIR/exclude_ids"
 
 # Elapsed time since a docker timestamp, in seconds
 function ElapsedTime() {
@@ -31,6 +53,33 @@ print int((now - exited).total_seconds())
 END
 }
 
+function compute_exclude_ids() {
+    # Find images that match patterns in the EXCLUDE_FROM_GC file and put their
+    # id prefixes into $EXCLUDE_IDS_FILE, prefixed with ^
+
+    PROCESSED_EXCLUDES="$STATE_DIR/processed_excludes.tmp"
+    # Take each line and put a space at the beginning and end, so when we
+    # grep for them below, it will effectively be: "match either repo:tag
+    # or imageid".  Also delete blank lines or lines that only contain
+    # whitespace
+    sed 's/^\(.*\)$/ \1 /' $EXCLUDE_FROM_GC | sed '/^ *$/d' > $PROCESSED_EXCLUDES
+    # The following looks a bit of a mess, but here's what it does:
+    # 1. Get images
+    # 2. Skip header line
+    # 3. Turn columnar display of 'REPO TAG IMAGEID ....' to 'REPO:TAG IMAGEID'
+    # 4. find lines that contain things mentioned in PROCESSED_EXCLUDES
+    # 5. Grab the image id from the line
+    # 6. Prepend ^ to the beginning of each line
+
+    # What this does is make grep patterns to match image ids mentioned by
+    # either repo:tag or image id for later greppage
+    $DOCKER images \
+        | tail -n+2 \
+        | sed 's/^\([^ ]*\) *\([^ ]*\) *\([^ ]*\).*/ \1:\2 \3 /' \
+        | grep -f $PROCESSED_EXCLUDES 2> /dev/null \
+        | cut -d' ' -f3 \
+        | sed 's/^/^/' > $EXCLUDE_IDS_FILE
+}
 
 cd "$STATE_DIR"
 
@@ -42,6 +91,9 @@ $DOCKER ps -a -q --no-trunc | sort | uniq > containers.all
 
 # List running containers
 $DOCKER ps -q --no-trunc | sort | uniq > containers.running
+
+# compute ids of containers to exclude from GC
+compute_exclude_ids
 
 # List containers that are not running
 comm -23 containers.all containers.running > containers.exited
@@ -71,7 +123,7 @@ sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
 $DOCKER images -q --no-trunc | sort | uniq > images.all
-comm -23 images.all images.used > images.reap
+comm -23 images.all images.used | grep -v -f $EXCLUDE_IDS_FILE > images.reap
 
 # Reap containers.
 xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null
