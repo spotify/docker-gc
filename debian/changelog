@@ -1,3 +1,9 @@
+docker-gc (0.0.2) unstable; urgency=low
+
+  * Allow for GC to ignore certain images
+
+ -- Drew Csillag <drewc@spotify.com>  Tue, 14 Oct 2014 20:20:20 +0000
+
 docker-gc (0.0.1) unstable; urgency=low
 
   * Initial release.
