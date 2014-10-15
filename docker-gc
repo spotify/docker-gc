@@ -40,6 +40,10 @@ GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 DOCKER=${DOCKER:=docker}
 EXCLUDE_FROM_GC=${EXCLUDE_FROM_GC:=/etc/docker-gc-exclude}
+if [ ! -f "$EXCLUDE_FROM_GC" ]
+then
+  EXCLUDE_FROM_GC=/dev/null
+fi
 
 EXCLUDE_IDS_FILE="$STATE_DIR/exclude_ids"
 
@@ -80,6 +84,11 @@ function compute_exclude_ids() {
         | cut -d' ' -f3 \
         | sed 's/^/^/' > $EXCLUDE_IDS_FILE
 }
+
+if [ ! -d "$STATE_DIR" ]
+then
+  mkdir -p $STATE_DIR
+fi
 
 cd "$STATE_DIR"
 
@@ -123,11 +132,11 @@ sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
 $DOCKER images -q --no-trunc | sort | uniq > images.all
-comm -23 images.all images.used | grep -v -f $EXCLUDE_IDS_FILE > images.reap
+comm -23 images.all images.used | grep -v -f $EXCLUDE_IDS_FILE > images.reap || true
 
 # Reap containers.
-xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null
+xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null || true
 
 # Reap images.
-xargs -n 1 $DOCKER rmi < images.reap &>/dev/null
+xargs -n 1 $DOCKER rmi < images.reap &>/dev/null || true
 
