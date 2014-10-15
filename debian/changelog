@@ -1,3 +1,9 @@
+docker-gc (0.0.3) unstable; urgency=low
+
+  * Tolerate things not existing
+
+ -- Drew Csillag <drewc@spotify.com>  Wed, 15 Oct 2014 20:20:20 +0000
+
 docker-gc (0.0.2) unstable; urgency=low
 
   * Allow for GC to ignore certain images
