@@ -54,7 +54,7 @@ from datetime import datetime,timedelta
 now = datetime.utcnow()
 exited =  datetime.strptime("${1}".replace("Z","").split('.')[0], "%Y-%m-%dT%H:%M:%S")
 difference = now - exited
-differenceTotalSeconds = (difference.microseconds + (difference.seconds + difference.days*24*3600) * 1e6) / 1e6
+differenceTotalSeconds = difference.seconds + difference.days*24*3600
 print int(differenceTotalSeconds)
 END
 }
