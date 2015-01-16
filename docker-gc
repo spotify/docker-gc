@@ -49,7 +49,7 @@ EXCLUDE_IDS_FILE="$STATE_DIR/exclude_ids"
 
 # Elapsed time since a docker timestamp, in seconds
 function ElapsedTime() {
-    python <<END
+    env python2 <<END
 from datetime import datetime,timedelta
 now = datetime.utcnow()
 exited =  datetime.strptime("${1}".replace("Z","").split('.')[0], "%Y-%m-%dT%H:%M:%S")
