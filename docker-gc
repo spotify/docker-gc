@@ -45,7 +45,7 @@ then
   EXCLUDE_FROM_GC=/dev/null
 fi
 
-EXCLUDE_IDS_FILE="$STATE_DIR/exclude_ids"
+EXCLUDE_IDS_FILE="exclude_ids"
 
 # Elapsed time since a docker timestamp, in seconds
 function ElapsedTime() {
@@ -63,7 +63,7 @@ function compute_exclude_ids() {
     # Find images that match patterns in the EXCLUDE_FROM_GC file and put their
     # id prefixes into $EXCLUDE_IDS_FILE, prefixed with ^
 
-    PROCESSED_EXCLUDES="$STATE_DIR/processed_excludes.tmp"
+    PROCESSED_EXCLUDES="processed_excludes.tmp"
     # Take each line and put a space at the beginning and end, so when we
     # grep for them below, it will effectively be: "match either repo:tag
     # or imageid".  Also delete blank lines or lines that only contain
@@ -82,16 +82,16 @@ function compute_exclude_ids() {
     $DOCKER images \
         | tail -n+2 \
         | sed 's/^\([^ ]*\) *\([^ ]*\) *\([^ ]*\).*/ \1:\2 \3 /' \
-        | grep -f $PROCESSED_EXCLUDES 2> /dev/null \
+        | grep -f $PROCESSED_EXCLUDES 2>/dev/null \
         | cut -d' ' -f3 \
         | sed 's/^/^/' > $EXCLUDE_IDS_FILE
 }
 
+# Change into the state directory (and create it if it doesn't exist)
 if [ ! -d "$STATE_DIR" ]
 then
   mkdir -p $STATE_DIR
 fi
-
 cd "$STATE_DIR"
 
 # Verify that docker is reachable
