@@ -55,7 +55,7 @@ now = datetime.utcnow()
 exited =  datetime.strptime("${1}".replace("Z","").split('.')[0], "%Y-%m-%dT%H:%M:%S")
 difference = now - exited
 differenceTotalSeconds = difference.seconds + difference.days*24*3600
-print int(differenceTotalSeconds)
+print(int(differenceTotalSeconds))
 END
 }
 
