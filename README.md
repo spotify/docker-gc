@@ -21,7 +21,7 @@ Building
 Build the debian package:
 
 ```sh
-$ apt-get install git devscripts
+$ apt-get install git devscripts debhelper
 $ git clone https://github.com/spotify/docker-gc.git
 $ cd docker-gc
 $ debuild -us -uc -b
@@ -32,7 +32,7 @@ Installing
 ----------
 
 ```sh
-$ dpkg -i ../docker-gc_0.0.1_all.deb
+$ dpkg -i ../docker-gc_0.0.3_all.deb
 ```
 
 This installs the `docker-gc` script into `/usr/sbin` and drops a `docker-gc` cron
