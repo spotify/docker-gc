@@ -49,10 +49,12 @@ EXCLUDE_IDS_FILE="exclude_ids"
 
 # Elapsed time since a docker timestamp, in seconds
 function ElapsedTime() {
+    # Docker 1.5.0 datetime format is 2015-07-03T02:39:00.390284991
+    # Docker 1.7.0 datetime format is 2015-07-03 02:39:00.390284991 +0000 UTC
     python <<END
 from datetime import datetime,timedelta
 now = datetime.utcnow()
-exited =  datetime.strptime(${1}.replace("Z","").split('.')[0], "%Y-%m-%dT%H:%M:%S")
+exited = datetime.strptime(${1}[:19].replace("T"," "), "%Y-%m-%d %H:%M:%S")
 difference = now - exited
 differenceTotalSeconds = difference.seconds + difference.days*24*3600
 print(int(differenceTotalSeconds))
