@@ -1,16 +1,15 @@
-FROM debian:jessie
+FROM gliderlabs/alpine:3.2
 
 ENV DOCKER_VERSION 1.6.2
 
-RUN apt-get update \
-  && DEBIAN_FRONTEND=noninteractive apt-get install -y python-minimal \
-  && apt-get clean \
-  && rm -rf /var/apt/lists/*
+# We get curl so that we can avoid a separate ADD to fetch the Docker binary, and then we'll remove it
+RUN apk --update add bash curl python \
+  && curl -s https://get.docker.io/builds/Linux/x86_64/docker-${DOCKER_VERSION} > /bin/docker \
+  && chmod +x /bin/docker \
+  && apk del curl \
+  && rm -rf /var/cache/apk/*
 
-ADD https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSION} /usr/local/bin/docker
-RUN chmod +x /usr/local/bin/docker
-
-ADD docker-gc /docker-gc
+COPY ./docker-gc /docker-gc
 
 VOLUME /var/lib/docker-gc
 
