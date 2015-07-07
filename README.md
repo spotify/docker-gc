@@ -66,3 +66,17 @@ spotify/cassandra:latest
 9681260c3ad5
 ```
 
+Running as a Docker Image
+-------------------------
+
+A Dockerfile is provided as an alternative to a local installation. By default the container will start up, run a single garbage collection, and shut down.
+
+```sh
+docker build -t spotify/docker-gc .
+```
+
+The docker-gc container requires access to the docker socket in order to function.
+
+```sh
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock spotify/docker-gc
+```
