@@ -52,7 +52,7 @@ function ElapsedTime() {
     python <<END
 from datetime import datetime,timedelta
 now = datetime.utcnow()
-exited =  datetime.strptime("${1}".replace("Z","").split('.')[0], "%Y-%m-%dT%H:%M:%S")
+exited =  datetime.strptime(${1}.replace("Z","").split('.')[0], "%Y-%m-%dT%H:%M:%S")
 difference = now - exited
 differenceTotalSeconds = difference.seconds + difference.days*24*3600
 print(int(differenceTotalSeconds))
@@ -113,7 +113,7 @@ comm -23 containers.all containers.running > containers.exited
 echo -n "" > containers.reap.tmp
 cat containers.exited | while read line
 do
-    EXITED=$(${DOCKER} inspect -f '{{.State.FinishedAt}}' ${line})
+    EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
     ELAPSED=$(ElapsedTime $EXITED)
     if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
         echo $line >> containers.reap.tmp
@@ -141,4 +141,3 @@ xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null || true
 
 # Reap images.
 xargs -n 1 $DOCKER rmi < images.reap &>/dev/null || true
-
