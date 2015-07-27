@@ -33,7 +33,7 @@ Installing
 ----------
 
 ```sh
-$ dpkg -i ../docker-gc_0.0.3_all.deb
+$ dpkg -i ../docker-gc_0.0.4_all.deb
 ```
 
 This installs the `docker-gc` script into `/usr/sbin` and drops a `docker-gc`
