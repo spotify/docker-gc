@@ -47,18 +47,26 @@ fi
 
 EXCLUDE_IDS_FILE="exclude_ids"
 
+function date_parse {
+  if date --utc >/dev/null 2>&1; then
+    # GNU/date
+    echo $(date -u --date "${1}" "+%s")
+  else
+    # BSD/date
+    echo $(date -j -u -f "%F %T" "${1}" "+%s")
+  fi
+}
+
+
 # Elapsed time since a docker timestamp, in seconds
-function ElapsedTime() {
+function elapsed_time() {
     # Docker 1.5.0 datetime format is 2015-07-03T02:39:00.390284991
     # Docker 1.7.0 datetime format is 2015-07-03 02:39:00.390284991 +0000 UTC
-    python <<END
-from datetime import datetime,timedelta
-now = datetime.utcnow()
-exited = datetime.strptime(${1}[:19].replace("T"," "), "%Y-%m-%d %H:%M:%S")
-difference = now - exited
-differenceTotalSeconds = difference.seconds + difference.days*24*3600
-print(int(differenceTotalSeconds))
-END
+    utcnow=$(date -u "+%s")
+    without_ms="${1:0:19}"
+    replace_t="${without_ms/T/ }"
+    epoch=$(date_parse "${replace_t}")
+    echo $(($utcnow - $epoch))
 }
 
 function compute_exclude_ids() {
@@ -116,7 +124,7 @@ echo -n "" > containers.reap.tmp
 cat containers.exited | while read line
 do
     EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
-    ELAPSED=$(ElapsedTime $EXITED)
+    ELAPSED=$(elapsed_time $EXITED)
     if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
         echo $line >> containers.reap.tmp
     fi
