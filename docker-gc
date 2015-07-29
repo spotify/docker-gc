@@ -63,7 +63,7 @@ function elapsed_time() {
     # Docker 1.5.0 datetime format is 2015-07-03T02:39:00.390284991
     # Docker 1.7.0 datetime format is 2015-07-03 02:39:00.390284991 +0000 UTC
     utcnow=$(date -u "+%s")
-    without_ms="${1:0:19}"
+    without_ms="${1:1:19}"
     replace_t="${without_ms/T/ }"
     epoch=$(date_parse "${replace_t}")
     echo $(($utcnow - $epoch))
