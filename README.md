@@ -67,6 +67,22 @@ spotify/cassandra:latest
 9681260c3ad5
 ```
 
+Excluding Containers From Garbage Collection
+----------------------------------------
+
+There can also be containers (for example data only containers) which 
+you would like to exclude from garbage collection. To do so, create 
+`/etc/docker-gc-exclude-containers`, or if you want the file to be 
+read from elsewhere, set the `EXCLUDE_CONTAINERS_FROM_GC` environment 
+variable to its location. This file should container name patterns (in 
+the `grep` sense), one per line, such as `mariadb-data`.
+
+An example excludes file might contain:
+```
+mariadb-data
+drunk_goodall
+```
+
 Running as a Docker Image
 -------------------------
 

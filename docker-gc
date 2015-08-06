@@ -39,13 +39,21 @@ set -o errexit
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 DOCKER=${DOCKER:=docker}
+
 EXCLUDE_FROM_GC=${EXCLUDE_FROM_GC:=/etc/docker-gc-exclude}
 if [ ! -f "$EXCLUDE_FROM_GC" ]
 then
   EXCLUDE_FROM_GC=/dev/null
 fi
 
+EXCLUDE_CONTAINERS_FROM_GC=${EXCLUDE_CONTAINERS_FROM_GC:=/etc/docker-gc-exclude-containers}
+if [ ! -f "$EXCLUDE_CONTAINERS_FROM_GC" ]
+then
+  EXCLUDE_CONTAINERS_FROM_GC=/dev/null  
+fi
+
 EXCLUDE_IDS_FILE="exclude_ids"
+EXCLUDE_CONTAINER_IDS_FILE="exclude_container_ids"
 
 function date_parse {
   if date --utc >/dev/null 2>&1; then
@@ -56,7 +64,6 @@ function date_parse {
     echo $(date -j -u -f "%F %T" "${1}" "+%s")
   fi
 }
-
 
 # Elapsed time since a docker timestamp, in seconds
 function elapsed_time() {
@@ -98,6 +105,22 @@ function compute_exclude_ids() {
         | sed 's/^/^/' > $EXCLUDE_IDS_FILE
 }
 
+function compute_exclude_container_ids() {
+    # Find containers matching to patterns listed in EXCLUDE_CONTAINERS_FROM_GC file
+    # Implode their values with a \| separator on a single line
+    PROCESSED_EXCLUDES=`cat $EXCLUDE_CONTAINERS_FROM_GC \
+        | xargs \
+        | sed -e 's/ /\\\|/g'`
+    # Find all docker images
+    # Filter out with matching names 
+    # and put them to $EXCLUDE_CONTAINER_IDS_FILE
+    $DOCKER ps -a \
+        | grep "$PROCESSED_EXCLUDES" \
+        | awk '{ print $1 }' \
+        | tr -s " " "\012" \
+        | sort -u > $EXCLUDE_CONTAINER_IDS_FILE
+}
+
 # Change into the state directory (and create it if it doesn't exist)
 if [ ! -d "$STATE_DIR" ]
 then
@@ -114,8 +137,11 @@ $DOCKER ps -a -q --no-trunc | sort | uniq > containers.all
 # List running containers
 $DOCKER ps -q --no-trunc | sort | uniq > containers.running
 
-# compute ids of containers to exclude from GC
+# compute ids of container images to exclude from GC
 compute_exclude_ids
+
+# compute ids of containers to exclude from GC
+compute_exclude_container_ids
 
 # List containers that are not running
 comm -23 containers.all containers.running > containers.exited
@@ -130,7 +156,9 @@ do
         echo $line >> containers.reap.tmp
     fi
 done
-cat containers.reap.tmp | sort | uniq > containers.reap
+
+# List containers that we will remove and exclude ids.
+cat containers.reap.tmp | sort | uniq | grep -v -f $EXCLUDE_CONTAINER_IDS_FILE > containers.reap || true
 
 # List containers that we will keep.
 comm -23 containers.all containers.reap > containers.keep
