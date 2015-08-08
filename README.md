@@ -27,6 +27,8 @@ $ cd docker-gc
 $ debuild -us -uc -b
 ```
 
+If you get lintian errors during `debuild`, try `debuild --no-lintian -us -uc -b`.
+
 
 ## Installing
 
