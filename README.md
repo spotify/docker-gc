@@ -1,5 +1,5 @@
-docker-gc
-=========
+# docker-gc
+
 
 A simple Docker container and image garbage collection script.
 
@@ -16,8 +16,7 @@ still on disk.
 This script is intended to be run as a cron job. You can also run it as a Docker
 container (see below).
 
-Building
---------
+## Building
 
 Build the debian package:
 
@@ -29,8 +28,7 @@ $ debuild -us -uc -b
 ```
 
 
-Installing
-----------
+## Installing
 
 ```sh
 $ dpkg -i ../docker-gc_0.0.4_all.deb
@@ -40,14 +38,14 @@ This installs the `docker-gc` script into `/usr/sbin` and drops a `docker-gc`
 cron file into `/etc/cron.hourly/`.
 
 
-Usage
------
+## Usage
 
-To use the script manually, run `docker-gc`.
+To use the script manually, run `docker-gc`. The system user under
+which `docker-gc` runs needs to have read and write access to
+the `$STATE_DIR` environment variable which defaults to `/var/lib/docker-gc`.
 
 
-Excluding Images From Garbage Collection
-----------------------------------------
+### Excluding Images From Garbage Collection
 
 There can be images that are large that serve as a common base for
 many application containers, and as such, make sense to pin to the
@@ -67,8 +65,7 @@ spotify/cassandra:latest
 9681260c3ad5
 ```
 
-Excluding Containers From Garbage Collection
-----------------------------------------
+### Excluding Containers From Garbage Collection
 
 There can also be containers (for example data only containers) which 
 you would like to exclude from garbage collection. To do so, create 
@@ -83,19 +80,18 @@ mariadb-data
 drunk_goodall
 ```
 
-Running as a Docker Image
--------------------------
+### Running as a Docker Image
 
 A Dockerfile is provided as an alternative to a local installation. By default
 the container will start up, run a single garbage collection, and shut down.
 
-### Build the Docker Image
+#### Build the Docker Image
 
 ```sh
 docker build -t spotify/docker-gc .
 ```
 
-### Running as a Docker Container
+#### Running as a Docker Container
 
 The docker-gc container requires access to the docker socket in order to
 function, so you need to map it when running, e.g.:
