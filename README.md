@@ -1,5 +1,13 @@
 # docker-gc
 
+* [Building](#building)
+* [Installing](#installing)
+* [Usage](#usage)
+  * [Excluding Images From Garbage Collection](#excluding-images-from-garbage-collection)
+  * [Excluding Containers From Garbage Collection](#excluding-containers-from-garbage-collection)
+  * [Running as a Docker Image](#runnings-as-a-docker-image)
+    * [Build the Docker Image](#build-the-docker-image)
+    * [Running as a Docker Container](#running-as-a-docker-container)
 
 A simple Docker container and image garbage collection script.
 
