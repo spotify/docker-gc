@@ -110,12 +110,12 @@ function compute_exclude_container_ids() {
     # Implode their values with a \| separator on a single line
     PROCESSED_EXCLUDES=`cat $EXCLUDE_CONTAINERS_FROM_GC \
         | xargs \
-        | sed -e 's/ /\\\|/g'`
+        | sed -e 's/ /\|/g'`
     # Find all docker images
     # Filter out with matching names 
     # and put them to $EXCLUDE_CONTAINER_IDS_FILE
     $DOCKER ps -a \
-        | grep "$PROCESSED_EXCLUDES" \
+        | grep -E "$PROCESSED_EXCLUDES" \
         | awk '{ print $1 }' \
         | tr -s " " "\012" \
         | sort -u > $EXCLUDE_CONTAINER_IDS_FILE
