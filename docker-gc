@@ -111,6 +111,11 @@ function compute_exclude_container_ids() {
     PROCESSED_EXCLUDES=`cat $EXCLUDE_CONTAINERS_FROM_GC \
         | xargs \
         | sed -e 's/ /\|/g'`
+    # The empty string would match everything
+    if [ "$PROCESSED_EXCLUDES" = "" ]; then
+        touch $EXCLUDE_CONTAINER_IDS_FILE
+        return
+    fi
     # Find all docker images
     # Filter out with matching names 
     # and put them to $EXCLUDE_CONTAINER_IDS_FILE
