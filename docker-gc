@@ -178,7 +178,18 @@ sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
 $DOCKER images -q --no-trunc | sort | uniq > images.all
-comm -23 images.all images.used | grep -v -f $EXCLUDE_IDS_FILE > images.reap || true
+
+# Find images that are created at least GRACE_PERIOD_SECONDS ago
+echo -n "" > images.reap.tmp
+cat images.all | while read line
+do
+    CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
+    ELAPSED=$(elapsed_time $CREATED)
+    if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
+        echo $line >> images.reap.tmp
+    fi
+done
+comm -23 images.reap.tmp images.used | grep -v -f $EXCLUDE_IDS_FILE > images.reap || true
 
 # Reap containers.
 xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null || true
