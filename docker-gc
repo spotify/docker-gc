@@ -39,6 +39,19 @@ set -o errexit
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 DOCKER=${DOCKER:=docker}
+PID_DIR=${PID_DIR:=/var/run}
+
+for pid in $(pidof -x docker-gc); do
+    if [[ $pid != $$ ]]; then
+        echo "[$(date)] : docker-gc : Process is already running with PID $pid"
+        exit 1
+    fi
+done
+
+trap "rm -f -- '$PID_DIR/dockergc'" EXIT
+
+echo $$ > $PID_DIR/dockergc
+
 
 EXCLUDE_FROM_GC=${EXCLUDE_FROM_GC:=/etc/docker-gc-exclude}
 if [ ! -f "$EXCLUDE_FROM_GC" ]
