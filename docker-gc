@@ -41,7 +41,7 @@ STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 DOCKER=${DOCKER:=docker}
 PID_DIR=${PID_DIR:=/var/run}
 
-for pid in $(pidof -x docker-gc); do
+for pid in $(pidof -s docker-gc); do
     if [[ $pid != $$ ]]; then
         echo "[$(date)] : docker-gc : Process is already running with PID $pid"
         exit 1
