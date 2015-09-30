@@ -21,12 +21,11 @@ busybox, etc) that are in use by containers. A naive `docker rmi $(docker images
 repositories when starting new containers even though the images themselves are
 still on disk.
 
-This script is intended to be run as a cron job. You can also run it as a Docker
-container (see below).
+This script is intended to be run as a cron job, but you can also run it as a Docker
+container (see [below](#running-as-a-docker-container)).
 
-## Building
+## Building the Debian Package
 
-Build the debian package:
 
 ```sh
 $ apt-get install git devscripts debhelper
@@ -38,17 +37,23 @@ $ debuild -us -uc -b
 If you get lintian errors during `debuild`, try `debuild --no-lintian -us -uc -b`.
 
 
-## Installing
+## Installing the Debian Package
 
 ```sh
 $ dpkg -i ../docker-gc_0.0.4_all.deb
 ```
 
-This installs the `docker-gc` script into `/usr/sbin` and drops a `docker-gc`
-cron file into `/etc/cron.hourly/`.
+This installs the `docker-gc` script into `/usr/sbin`. If you want it to
+run as a cron job, you can configure it now by dropping a file like this
+file into `/etc/cron.hourly/`.
+
+```
+#!/bin/bash
+/usr/sbin/docker-gc
+```
 
 
-## Usage
+## Manual Usage
 
 To use the script manually, run `docker-gc`. The system user under
 which `docker-gc` runs needs to have read and write access to
@@ -69,7 +74,7 @@ sense), one per line, such as `spotify/cassandra:latest` or it can
 contain image ids (truncated to the length shown in `docker images`
 which is 12.
 
-An example excludes file might contain:
+An example image excludes file might contain:
 ```
 spotify/cassandra:latest
 9681260c3ad5
@@ -84,18 +89,18 @@ read from elsewhere, set the `EXCLUDE_CONTAINERS_FROM_GC` environment
 variable to its location. This file should container name patterns (in 
 the `grep` sense), one per line, such as `mariadb-data`.
 
-An example excludes file might contain:
+An example container excludes file might contain:
 ```
 mariadb-data
 drunk_goodall
 ```
 
-### Running as a Docker Image
+## Running as a Docker Image
 
 A Dockerfile is provided as an alternative to a local installation. By default
 the container will start up, run a single garbage collection, and shut down.
 
-#### Build the Docker Image
+#### Building the Docker Image
 
 ```sh
 docker build -t spotify/docker-gc .
@@ -107,5 +112,8 @@ The docker-gc container requires access to the docker socket in order to
 function, so you need to map it when running, e.g.:
 
 ```sh
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spotify/docker-gc
+$ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spotify/docker-gc
 ```
+
+The `/etc` directory is also mapped so that it can read any exclude files
+that you've created.
