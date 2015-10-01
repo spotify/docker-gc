@@ -1,6 +1,6 @@
 FROM gliderlabs/alpine:3.2
 
-ENV DOCKER_VERSION 1.6.2
+ENV DOCKER_VERSION 1.8.2
 
 # We get curl so that we can avoid a separate ADD to fetch the Docker binary, and then we'll remove it
 RUN apk --update add bash curl python \
