@@ -170,10 +170,7 @@ $DOCKER ps -a -q --no-trunc | sort | uniq > containers.all
 # List running containers
 $DOCKER ps -q --no-trunc | sort | uniq > containers.running
 echo "[$(date)] Containers running" >> "$LOG"
-cat containers.running | while read line
-do
-    echo "$line $(docker inspect -f {{.Name}} $line)" | tr -d '/' >> "$LOG"
-done
+container_log containers.running
 
 # compute ids of container images to exclude from GC
 compute_exclude_ids
