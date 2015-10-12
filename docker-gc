@@ -38,6 +38,7 @@ set -o errexit
 
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
+LOG=${LOG:=$STATE_DIR/docker-dc.log}
 DOCKER=${DOCKER:=docker}
 PID_DIR=${PID_DIR:=/var/run}
 
@@ -154,6 +155,11 @@ $DOCKER ps -a -q --no-trunc | sort | uniq > containers.all
 
 # List running containers
 $DOCKER ps -q --no-trunc | sort | uniq > containers.running
+echo "[$(date)] Containers running" >> "$LOG"
+cat containers.running | while read line
+do
+    echo "$line $(docker inspect -f {{.Name}} $line)" | tr -d '/' >> "$LOG"
+done
 
 # compute ids of container images to exclude from GC
 compute_exclude_ids
@@ -163,6 +169,11 @@ compute_exclude_container_ids
 
 # List containers that are not running
 comm -23 containers.all containers.running > containers.exited
+echo "[$(date)] Containers not running" >> "$LOG"
+cat containers.exited | while read line
+do
+    echo "$line $(docker inspect -f {{.Name}} $line)" | tr -d '/' >> "$LOG"
+done
 
 # Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
 echo -n "" > containers.reap.tmp
@@ -206,6 +217,16 @@ comm -23 images.reap.tmp images.used | grep -v -f $EXCLUDE_IDS_FILE > images.rea
 
 # Reap containers.
 xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null || true
+echo "[$(date)] Containers removed " >> "$LOG"
+cat containers.reap | while read line
+do
+    echo "$line $(docker inspect -f {{.Name}} $line)" | tr -d '/' >> "$LOG"
+done
 
 # Reap images.
 xargs -n 1 $DOCKER rmi < images.reap &>/dev/null || true
+echo "[$(date)] Images removed" >> "$LOG"
+cat images.reap | while read line
+do
+    echo "$line $(docker inspect -f {{.Tags}} $line)" | tr -d '\[]' >> "$LOG"
+done
