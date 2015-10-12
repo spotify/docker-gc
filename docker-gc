@@ -140,6 +140,20 @@ function compute_exclude_container_ids() {
         | sort -u > $EXCLUDE_CONTAINER_IDS_FILE
 }
 
+function container_log() {
+    cat $1 | while read line
+    do
+        echo "$line $(docker inspect -f {{.Name}} $line)" | tr -d '/' >> "$LOG"
+    done
+}
+
+function image_log() {
+    cat $1 | while read line
+    do
+        echo "$line $(docker inspect -f {{.Tags}} $line)" | tr -d '\[]' >> "$LOG"
+    done
+}
+
 # Change into the state directory (and create it if it doesn't exist)
 if [ ! -d "$STATE_DIR" ]
 then
@@ -170,10 +184,7 @@ compute_exclude_container_ids
 # List containers that are not running
 comm -23 containers.all containers.running > containers.exited
 echo "[$(date)] Containers not running" >> "$LOG"
-cat containers.exited | while read line
-do
-    echo "$line $(docker inspect -f {{.Name}} $line)" | tr -d '/' >> "$LOG"
-done
+container_log containers.exited
 
 # Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
 echo -n "" > containers.reap.tmp
@@ -218,15 +229,9 @@ comm -23 images.reap.tmp images.used | grep -v -f $EXCLUDE_IDS_FILE > images.rea
 # Reap containers.
 xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null || true
 echo "[$(date)] Containers removed " >> "$LOG"
-cat containers.reap | while read line
-do
-    echo "$line $(docker inspect -f {{.Name}} $line)" | tr -d '/' >> "$LOG"
-done
+container_log containers.reap
 
 # Reap images.
 xargs -n 1 $DOCKER rmi < images.reap &>/dev/null || true
 echo "[$(date)] Images removed" >> "$LOG"
-cat images.reap | while read line
-do
-    echo "$line $(docker inspect -f {{.Tags}} $line)" | tr -d '\[]' >> "$LOG"
-done
+image_log images.reap
