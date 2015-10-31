@@ -224,11 +224,11 @@ done
 comm -23 images.reap.tmp images.used | grep -v -f $EXCLUDE_IDS_FILE > images.reap || true
 
 # Reap containers.
-xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null || true
 echo "[$(date)] Containers removed " >> "$LOG"
 container_log containers.reap
+xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null || true
 
 # Reap images.
-xargs -n 1 $DOCKER rmi < images.reap &>/dev/null || true
 echo "[$(date)] Images removed" >> "$LOG"
 image_log images.reap
+xargs -n 1 $DOCKER rmi < images.reap &>/dev/null || true
