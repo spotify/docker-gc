@@ -4,5 +4,9 @@ machine:
 
 test:
   override:
-    - make image
-    # next make sure image can run
+      # TODO: run bash script against https://github.com/koalaman/shellcheck
+      # use custom tag for next command to make sense
+      - DOCKER_TAG=circleci make image
+      # make sure image can run
+      - docker run -e LOG_TO_SYSLOG=0 -v /var/run/docker.sock:/var/run/docker.sock spotify/docker-gc:circleci
+

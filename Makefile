@@ -1,5 +1,5 @@
 DOCKER_REPOSITORY ?= spotify/docker-gc
-DOCKER_TAG = $(shell cat version.txt)
+DOCKER_TAG ?= $(shell cat version.txt)
 
 DOCKER ?= docker
 export DOCKER
