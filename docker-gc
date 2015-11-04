@@ -35,7 +35,9 @@
 
 # The script will send log messages to syslog regarding which images and
 # containers were removed. The facility and logger can be configured with
-# $SYSLOG_FACILITY and $SYSLOG_LEVEL respectively.
+# $SYSLOG_FACILITY and $SYSLOG_LEVEL respectively. To log to standard out
+# instead (for example, when running this script in a Docker container), set
+# LOG_TO_SYSLOG=0.
 
 set -o nounset
 set -o errexit
@@ -44,6 +46,7 @@ GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 DOCKER=${DOCKER:=docker}
 PID_DIR=${PID_DIR:=/var/run}
+LOG_TO_SYSLOG=${LOG_TO_SYSLOG:=1}
 SYSLOG_FACILITY=${SYSLOG_FACILITY:=user}
 SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
 SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
@@ -148,7 +151,11 @@ function compute_exclude_container_ids() {
 
 function log() {
     msg=$1
-    logger -i -t "$SYSLOG_TAG" -p "$SYSLOG_FACILITY.$SYSLOG_LEVEL" "$msg"
+    if [[ $LOG_TO_SYSLOG -gt 0 ]]; then
+        logger -i -t "$SYSLOG_TAG" -p "$SYSLOG_FACILITY.$SYSLOG_LEVEL" "$msg"
+    else
+        echo $msg
+    fi
 }
 
 function container_log() {
