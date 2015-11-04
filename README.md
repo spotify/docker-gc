@@ -102,6 +102,8 @@ the container will start up, run a single garbage collection, and shut down.
 
 #### Building the Docker Image
 
+Build the Docker image with `make image` or:
+
 ```sh
 docker build -t spotify/docker-gc .
 ```
