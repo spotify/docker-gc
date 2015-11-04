@@ -108,6 +108,8 @@ matches with your Docker daemon), simply edit [the `ENV DOCKER_VERSION` line in
 
 [dockerfile-ENV]: https://github.com/spotify/docker-gc/blob/fd6640fa8c133de53a0395a36e8dcbaf29842684/Dockerfile#L3
 
+Build the Docker image with `make image` or:
+
 ```sh
 docker build -t spotify/docker-gc .
 ```
