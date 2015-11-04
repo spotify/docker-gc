@@ -101,6 +101,12 @@ A Dockerfile is provided as an alternative to a local installation. By default
 the container will start up, run a single garbage collection, and shut down.
 
 #### Building the Docker Image
+The image is currently built with Docker 1.6.2, but to build it against a newer
+Docker version (to ensure that the API version of the command-line interface
+matches with your Docker daemon), simply edit [the `ENV DOCKER_VERSION` line in
+`Dockerfile`][dockerfile-ENV] prior to the build step below.
+
+[dockerfile-ENV]: https://github.com/spotify/docker-gc/blob/fd6640fa8c133de53a0395a36e8dcbaf29842684/Dockerfile#L3
 
 ```sh
 docker build -t spotify/docker-gc .
