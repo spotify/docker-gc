@@ -1,0 +1,8 @@
+machine:
+  services:
+    - docker
+
+test:
+  override:
+    - make image
+    # next make sure image can run
