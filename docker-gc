@@ -33,14 +33,20 @@
 
 # Note: State is stored in $STATE_DIR, defaulting to /var/lib/docker-gc
 
+# The script will send log messages to syslog regarding which images and
+# containers were removed. The facility and logger can be configured with
+# $SYSLOG_FACILITY and $SYSLOG_LEVEL respectively.
+
 set -o nounset
 set -o errexit
 
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
-LOG=${LOG:=$STATE_DIR/docker-dc.log}
 DOCKER=${DOCKER:=docker}
 PID_DIR=${PID_DIR:=/var/run}
+SYSLOG_FACILITY=${SYSLOG_FACILITY:=user}
+SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
+SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 
 for pid in $(pidof -s docker-gc); do
     if [[ $pid != $$ ]]; then
@@ -140,18 +146,29 @@ function compute_exclude_container_ids() {
         | sort -u > $EXCLUDE_CONTAINER_IDS_FILE
 }
 
+function log() {
+    msg=$1
+    logger -i -t "$SYSLOG_TAG" -p "$SYSLOG_FACILITY.$SYSLOG_LEVEL" "$msg"
+}
+
 function container_log() {
-    cat $1 | while read line
+    prefix=$1
+    filename=$2
+
+    while IFS='' read -r containerid
     do
-        echo "$line $(docker inspect -f {{.Name}} $line)" | tr -d '/' >> "$LOG"
-    done
+        log "$prefix $containerid $(docker inspect -f {{.Name}} $containerid)"
+    done < "$filename"
 }
 
 function image_log() {
-    cat $1 | while read line
+    prefix=$1
+    filename=$2
+
+    while IFS='' read -r imageid
     do
-        echo "$line $(docker inspect -f {{.Tags}} $line)" | tr -d '\[]' >> "$LOG"
-    done
+        log "$prefix $imageid $(docker inspect -f {{.Tags}} $imageid)"
+    done < "$filename"
 }
 
 # Change into the state directory (and create it if it doesn't exist)
@@ -169,8 +186,7 @@ $DOCKER ps -a -q --no-trunc | sort | uniq > containers.all
 
 # List running containers
 $DOCKER ps -q --no-trunc | sort | uniq > containers.running
-echo "[$(date)] Containers running" >> "$LOG"
-container_log containers.running
+container_log "Container running" containers.running
 
 # compute ids of container images to exclude from GC
 compute_exclude_ids
@@ -180,8 +196,7 @@ compute_exclude_container_ids
 
 # List containers that are not running
 comm -23 containers.all containers.running > containers.exited
-echo "[$(date)] Containers not running" >> "$LOG"
-container_log containers.exited
+container_log "Container not running" containers.exited
 
 # Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
 echo -n "" > containers.reap.tmp
@@ -224,11 +239,9 @@ done
 comm -23 images.reap.tmp images.used | grep -v -f $EXCLUDE_IDS_FILE > images.reap || true
 
 # Reap containers.
-echo "[$(date)] Containers removed " >> "$LOG"
-container_log containers.reap
+container_log "Container removed" containers.reap
 xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null || true
 
 # Reap images.
-echo "[$(date)] Images removed" >> "$LOG"
-image_log images.reap
+image_log "Removing image" images.reap
 xargs -n 1 $DOCKER rmi < images.reap &>/dev/null || true
