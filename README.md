@@ -5,7 +5,7 @@
 * [Usage](#usage)
   * [Excluding Images From Garbage Collection](#excluding-images-from-garbage-collection)
   * [Excluding Containers From Garbage Collection](#excluding-containers-from-garbage-collection)
-  * [Running as a Docker Image](#runnings-as-a-docker-image)
+  * [Running as a Docker Image](#running-as-a-docker-image)
     * [Build the Docker Image](#build-the-docker-image)
     * [Running as a Docker Container](#running-as-a-docker-container)
 
