@@ -33,11 +33,11 @@
 
 # Note: State is stored in $STATE_DIR, defaulting to /var/lib/docker-gc
 
-# The script will send log messages to syslog regarding which images and
-# containers were removed. The facility and logger can be configured with
-# $SYSLOG_FACILITY and $SYSLOG_LEVEL respectively. To log to standard out
-# instead (for example, when running this script in a Docker container), set
-# LOG_TO_SYSLOG=0.
+# The script can send log messages to syslog regarding which images and
+# containers were removed. To enable logging to syslog, set LOG_TO_SYSLOG=1.
+# When disabled, this script will instead log to standard out. When syslog is
+# enabled, the syslog facility and logger can be configured with
+# $SYSLOG_FACILITY and $SYSLOG_LEVEL respectively. 
 
 set -o nounset
 set -o errexit
@@ -46,7 +46,7 @@ GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 DOCKER=${DOCKER:=docker}
 PID_DIR=${PID_DIR:=/var/run}
-LOG_TO_SYSLOG=${LOG_TO_SYSLOG:=1}
+LOG_TO_SYSLOG=${LOG_TO_SYSLOG:=0}
 SYSLOG_FACILITY=${SYSLOG_FACILITY:=user}
 SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
 SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
@@ -154,7 +154,7 @@ function log() {
     if [[ $LOG_TO_SYSLOG -gt 0 ]]; then
         logger -i -t "$SYSLOG_TAG" -p "$SYSLOG_FACILITY.$SYSLOG_LEVEL" "$msg"
     else
-        echo $msg
+        echo "$msg"
     fi
 }
 
