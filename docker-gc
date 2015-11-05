@@ -33,6 +33,12 @@
 
 # Note: State is stored in $STATE_DIR, defaulting to /var/lib/docker-gc
 
+# The script can send log messages to syslog regarding which images and
+# containers were removed. To enable logging to syslog, set LOG_TO_SYSLOG=1.
+# When disabled, this script will instead log to standard out. When syslog is
+# enabled, the syslog facility and logger can be configured with
+# $SYSLOG_FACILITY and $SYSLOG_LEVEL respectively. 
+
 set -o nounset
 set -o errexit
 
@@ -40,6 +46,10 @@ GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 DOCKER=${DOCKER:=docker}
 PID_DIR=${PID_DIR:=/var/run}
+LOG_TO_SYSLOG=${LOG_TO_SYSLOG:=0}
+SYSLOG_FACILITY=${SYSLOG_FACILITY:=user}
+SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
+SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 
 for pid in $(pidof -s docker-gc); do
     if [[ $pid != $$ ]]; then
@@ -139,6 +149,35 @@ function compute_exclude_container_ids() {
         | sort -u > $EXCLUDE_CONTAINER_IDS_FILE
 }
 
+function log() {
+    msg=$1
+    if [[ $LOG_TO_SYSLOG -gt 0 ]]; then
+        logger -i -t "$SYSLOG_TAG" -p "$SYSLOG_FACILITY.$SYSLOG_LEVEL" "$msg"
+    else
+        echo "$msg"
+    fi
+}
+
+function container_log() {
+    prefix=$1
+    filename=$2
+
+    while IFS='' read -r containerid
+    do
+        log "$prefix $containerid $(docker inspect -f {{.Name}} $containerid)"
+    done < "$filename"
+}
+
+function image_log() {
+    prefix=$1
+    filename=$2
+
+    while IFS='' read -r imageid
+    do
+        log "$prefix $imageid $(docker inspect -f {{.Tags}} $imageid)"
+    done < "$filename"
+}
+
 # Change into the state directory (and create it if it doesn't exist)
 if [ ! -d "$STATE_DIR" ]
 then
@@ -154,6 +193,7 @@ $DOCKER ps -a -q --no-trunc | sort | uniq > containers.all
 
 # List running containers
 $DOCKER ps -q --no-trunc | sort | uniq > containers.running
+container_log "Container running" containers.running
 
 # compute ids of container images to exclude from GC
 compute_exclude_ids
@@ -163,6 +203,7 @@ compute_exclude_container_ids
 
 # List containers that are not running
 comm -23 containers.all containers.running > containers.exited
+container_log "Container not running" containers.exited
 
 # Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
 echo -n "" > containers.reap.tmp
@@ -205,7 +246,9 @@ done
 comm -23 images.reap.tmp images.used | grep -v -f $EXCLUDE_IDS_FILE > images.reap || true
 
 # Reap containers.
+container_log "Container removed" containers.reap
 xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null || true
 
 # Reap images.
+image_log "Removing image" images.reap
 xargs -n 1 $DOCKER rmi < images.reap &>/dev/null || true
