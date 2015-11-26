@@ -95,6 +95,18 @@ mariadb-data
 drunk_goodall
 ```
 
+### Forcing deletion of images that have multiple tags
+
+By default, docker will not remove an image if it is tagged in multiple
+repositories.
+If you have a server running docker where this is the case, for example
+in CI environments where dockers are being built, re-tagged, and pushed,
+you can enable a force flag to override this default.
+
+```
+FORCE_IMAGE_REMOVAL=1 docker-gc
+```
+
 ## Running as a Docker Image
 
 A Dockerfile is provided as an alternative to a local installation. By default
