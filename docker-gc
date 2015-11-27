@@ -43,6 +43,7 @@ set -o nounset
 set -o errexit
 
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
+MINIMUM_IMAGES_TO_SAVE=${MINIMUM_IMAGES_TO_SAVE:=10}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 DOCKER=${DOCKER:=docker}
 PID_DIR=${PID_DIR:=/var/run}
@@ -231,11 +232,18 @@ xargs -n 1 $DOCKER inspect -f '{{.Id}}' 2>/dev/null |
 sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
-$DOCKER images -q --no-trunc | sort | uniq > images.all
+echo -n "" > images.all
+$DOCKER images | while read line
+do
+    awk '{print $1};'
+done | sort | uniq | while read line
+do
+    $DOCKER images -q --no-trunc $line | tail -n +$MINIMUM_IMAGES_TO_SAVE | sort | uniq >> images.all
+done
 
 # Find images that are created at least GRACE_PERIOD_SECONDS ago
 echo -n "" > images.reap.tmp
-cat images.all | while read line
+cat images.all | sort | uniq | while read line
 do
     CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
     ELAPSED=$(elapsed_time $CREATED)
@@ -252,3 +260,4 @@ xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null || true
 # Reap images.
 image_log "Removing image" images.reap
 xargs -n 1 $DOCKER rmi < images.reap &>/dev/null || true
+
