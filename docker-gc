@@ -205,6 +205,15 @@ compute_exclude_container_ids
 comm -23 containers.all containers.running > containers.exited
 container_log "Container not running" containers.exited
 
+# List all dead containers
+cat containers.all | while read line
+do
+    DEAD=$(${DOCKER} inspect -f "{{.State.Dead}}" ${line})
+    if [ "$DEAD" = "true" ]; then
+        echo $line >> containers.dead
+    fi
+done
+
 # Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
 echo -n "" > containers.reap.tmp
 cat containers.exited | while read line
