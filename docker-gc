@@ -44,6 +44,7 @@ set -o errexit
 
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
+FORCE_IMAGE_REMOVAL=${FORCE_IMAGE_REMOVAL:=0}
 DOCKER=${DOCKER:=docker}
 PID_DIR=${PID_DIR:=/var/run}
 LOG_TO_SYSLOG=${LOG_TO_SYSLOG:=0}
@@ -249,6 +250,12 @@ comm -23 images.reap.tmp images.used | grep -v -f $EXCLUDE_IDS_FILE > images.rea
 container_log "Container removed" containers.reap
 xargs -n 1 $DOCKER rm --volumes=true < containers.reap &>/dev/null || true
 
+# Use -f flag on docker rmi command; forces removal of images that have multiple tags
+FORCE_FLAG=""
+if [[ $FORCE_IMAGE_REMOVAL -gt 0 ]]; then
+    FORCE_FLAG="-f"
+fi
+
 # Reap images.
 image_log "Removing image" images.reap
-xargs -n 1 $DOCKER rmi < images.reap &>/dev/null || true
+xargs -n 1 $DOCKER rmi $FORCE_FLAG < images.reap &>/dev/null || true
