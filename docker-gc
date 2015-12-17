@@ -175,7 +175,7 @@ function image_log() {
 
     while IFS='' read -r imageid
     do
-        log "$prefix $imageid $(docker inspect -f {{.Tags}} $imageid)"
+        log "$prefix $imageid $(docker inspect -f {{.RepoTags}} $imageid)"
     done < "$filename"
 }
 
