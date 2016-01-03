@@ -224,11 +224,8 @@ cat containers.reap.tmp | sort | uniq | grep -v -f $EXCLUDE_CONTAINER_IDS_FILE >
 comm -23 containers.all containers.reap > containers.keep
 
 # List images used by containers that we keep.
-# This may be both image id's and repo/name:tag, so normalize to image id's only
 cat containers.keep |
-xargs -n 1 $DOCKER inspect -f '{{.Config.Image}}' 2>/dev/null |
-sort | uniq |
-xargs -n 1 $DOCKER inspect -f '{{.Id}}' 2>/dev/null |
+xargs -n 1 $DOCKER inspect -f '{{.Image}}' 2>/dev/null |
 sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
