@@ -108,6 +108,17 @@ you can enable a force flag to override this default.
 FORCE_IMAGE_REMOVAL=1 docker-gc
 ```
 
+### Excluding Recently Exited Containers and Images From Garbage Collection
+
+By default, docker-gc will not remove a container if it exited less than 3600 seconds (1 hour) ago. In some cases you might need to change this setting (e.g. you need exited containers to stick around for debugging for several days) you can override this default.
+
+```
+GRACE_PERIOD_SECONDS=86400 docker-gc
+```
+
+This setting also prevents the removal of images that have been created less than `GRACE_PERIOD_SECONDS` seconds ago.
+
+
 ## Running as a Docker Image
 
 A Dockerfile is provided as an alternative to a local installation. By default
