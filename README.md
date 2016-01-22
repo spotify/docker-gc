@@ -108,17 +108,6 @@ you can enable a force flag to override this default.
 FORCE_IMAGE_REMOVAL=1 docker-gc
 ```
 
-### Forcing deletion of containers
-
-By default, if an error is encountered when cleaning up a container, Docker
-will report the error back and leave it on disk.  This can sometimes lead to
-containers accumulating.  If you run into this issue, you can force the removal
-of the container by setting the environment variable below:
-
-```
-FORCE_CONTAINER_REMOVAL=1 docker-dc
-```
-
 ### Excluding Recently Exited Containers and Images From Garbage Collection
 
 By default, docker-gc will not remove a container if it exited less than 3600 seconds (1 hour) ago. In some cases you might need to change this setting (e.g. you need exited containers to stick around for debugging for several days). Set the `GRACE_PERIOD_SECONDS` variable to override this default.
