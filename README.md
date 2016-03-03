@@ -116,7 +116,7 @@ containers accumulating.  If you run into this issue, you can force the removal
 of the container by setting the environment variable below:
 
 ```
-FORCE_CONTAINER_REMOVAL=1 docker-dc
+FORCE_CONTAINER_REMOVAL=1 docker-gc
 ```
 
 ### Excluding Recently Exited Containers and Images From Garbage Collection
