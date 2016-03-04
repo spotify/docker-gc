@@ -230,7 +230,7 @@ xargs -n 1 $DOCKER inspect -f '{{.Image}}' 2>/dev/null |
 sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
-$DOCKER images -q --no-trunc | sort | uniq > images.all
+$DOCKER images -q --no-trunc | sed 's/[^:]\+://' | sort | uniq > images.all
 
 # Find images that are created at least GRACE_PERIOD_SECONDS ago
 echo -n "" > images.reap.tmp
