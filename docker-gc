@@ -52,6 +52,7 @@ LOG_TO_SYSLOG=${LOG_TO_SYSLOG:=0}
 SYSLOG_FACILITY=${SYSLOG_FACILITY:=user}
 SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
 SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
+DRY_RUN=${DRY_RUN:=0}
 
 for pid in $(pidof -s docker-gc); do
     if [[ $pid != $$ ]]; then
@@ -251,8 +252,12 @@ if [[ $FORCE_CONTAINER_REMOVAL -gt 0 ]]; then
     FORCE_CONTAINER_FLAG="-f"
 fi
 # Reap containers.
-container_log "Container removed" containers.reap
-xargs -n 1 $DOCKER rm $FORCE_CONTAINER_FLAG --volumes=true < containers.reap &>/dev/null || true
+if [[ $DRY_RUN -gt 0 ]]; then
+    container_log "The following container would have been removed" containers.reap
+else
+    container_log "Removing containers" containers.reap
+    xargs -n 1 $DOCKER rm $FORCE_CONTAINER_FLAG --volumes=true < containers.reap &>/dev/null || true
+fi
 
 # Use -f flag on docker rmi command; forces removal of images that have multiple tags
 FORCE_IMAGE_FLAG=""
@@ -261,5 +266,9 @@ if [[ $FORCE_IMAGE_REMOVAL -gt 0 ]]; then
 fi
 
 # Reap images.
-image_log "Removing image" images.reap
-xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
+if [[ $DRY_RUN -gt 0 ]]; then
+    image_log "The following image would have been removed" images.reap
+else
+    image_log "Removing image" images.reap
+    xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
+fi

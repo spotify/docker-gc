@@ -129,6 +129,13 @@ GRACE_PERIOD_SECONDS=86400 docker-gc
 
 This setting also prevents the removal of images that have been created less than `GRACE_PERIOD_SECONDS` seconds ago.
 
+### Dry run
+By default, docker-gc will proceed with deletion of containers and images. To test your command-line options set the `DRY_RUN` variable to override this default.
+
+```
+DRY_RUN=1 docker-gc
+```
+
 
 ## Running as a Docker Image
 
