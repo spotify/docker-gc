@@ -8,6 +8,7 @@
   * [Running as a Docker Image](#running-as-a-docker-image)
     * [Build the Docker Image](#build-the-docker-image)
     * [Running as a Docker Container](#running-as-a-docker-container)
+* [Try on Katacoda](#try-on-katacoda)
 
 A simple Docker container and image garbage collection script.
 
@@ -167,3 +168,7 @@ $ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spot
 
 The `/etc` directory is also mapped so that it can read any exclude files
 that you've created.
+
+#### Try on Katacoda
+
+Katacoda has provided a sandboxed interactive learning environment to experiment and learn _docker-gc_. Try it at https://www.katacoda.com/ben_hall/scenarios/spotify-docker-gc
