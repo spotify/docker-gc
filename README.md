@@ -77,7 +77,7 @@ which is 12.
 An example image excludes file might contain:
 ```
 spotify/cassandra:latest
-redis:[^ ]\+
+redis:.*
 9681260c3ad5
 ```
 
