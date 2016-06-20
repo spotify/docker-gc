@@ -142,6 +142,8 @@ DRY_RUN=1 docker-gc
 A Dockerfile is provided as an alternative to a local installation. By default
 the container will start up, run a single garbage collection, and shut down.
 
+The image is published as `spotify/docker-gc`.
+
 #### Building the Docker Image
 The image is currently built with Docker 1.6.2, but to build it against a newer
 Docker version (to ensure that the API version of the command-line interface
