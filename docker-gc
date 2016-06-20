@@ -128,7 +128,7 @@ function compute_exclude_ids() {
         | sed 's/^\([^ ]*\) *\([^ ]*\) *\([^ ]*\).*/ \1:\2 \3 /' \
         | grep -f $PROCESSED_EXCLUDES 2>/dev/null \
         | cut -d' ' -f3 \
-        | sed 's/^/^/' > $EXCLUDE_IDS_FILE
+        | sed 's/^/^(sha256:)?/' > $EXCLUDE_IDS_FILE
 }
 
 function compute_exclude_container_ids() {
@@ -243,7 +243,7 @@ do
         echo $line >> images.reap.tmp
     fi
 done
-comm -23 images.reap.tmp images.used | grep -v -f $EXCLUDE_IDS_FILE > images.reap || true
+comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
 
 # Use -f flag on docker rm command; forces removal of images that are in Dead
 # status or give errors when removing.
@@ -272,3 +272,4 @@ else
     image_log "Removing image" images.reap
     xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
 fi
+
