@@ -83,11 +83,11 @@ redis:.*
 
 ### Excluding Containers From Garbage Collection
 
-There can also be containers (for example data only containers) which 
-you would like to exclude from garbage collection. To do so, create 
-`/etc/docker-gc-exclude-containers`, or if you want the file to be 
-read from elsewhere, set the `EXCLUDE_CONTAINERS_FROM_GC` environment 
-variable to its location. This file should container name patterns (in 
+There can also be containers (for example data only containers) which
+you would like to exclude from garbage collection. To do so, create
+`/etc/docker-gc-exclude-containers`, or if you want the file to be
+read from elsewhere, set the `EXCLUDE_CONTAINERS_FROM_GC` environment
+variable to its location. This file should container name patterns (in
 the `grep` sense), one per line, such as `mariadb-data`.
 
 An example container excludes file might contain:
@@ -136,6 +136,13 @@ By default, docker-gc will proceed with deletion of containers and images. To te
 DRY_RUN=1 docker-gc
 ```
 
+### Keeping History
+You can configure docker-gc to store a history of images and containers that were removed
+by setting the `LOG_HISTORY` variable to 1.
+
+```
+LOG_HISTORY=1 docker-gc
+```
 
 ## Running as a Docker Image
 
