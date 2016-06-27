@@ -28,7 +28,7 @@ container (see [below](#running-as-a-docker-container)).
 
 
 ```sh
-$ apt-get install git devscripts debhelper build-essential
+$ apt-get install git devscripts debhelper build-essential dh-make
 $ git clone https://github.com/spotify/docker-gc.git
 $ cd docker-gc
 $ debuild -us -uc -b
