@@ -53,6 +53,7 @@ SYSLOG_FACILITY=${SYSLOG_FACILITY:=user}
 SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
 SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 DRY_RUN=${DRY_RUN:=0}
+EXCLUDE_DEAD=${EXCLUDE_DEAD:=0}
 
 for pid in $(pidof -s docker-gc); do
     if [[ $pid != $$ ]]; then
@@ -206,6 +207,14 @@ compute_exclude_container_ids
 
 # List containers that are not running
 comm -23 containers.all containers.running > containers.exited
+
+if [[ $EXCLUDE_DEAD -gt 0 ]]; then
+    echo "Excluding dead containers"
+    # List dead containers
+    $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead
+    comm -23 containers.exited containers.dead > containers.exited
+fi
+
 container_log "Container not running" containers.exited
 
 # Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
