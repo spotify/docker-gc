@@ -96,6 +96,13 @@ mariadb-data
 drunk_goodall
 ```
 
+If you would prefer to not garbage collect any containers at all then
+you can do this by setting the environment variable below:
+
+```
+REMOVE_CONTAINERS=0 docker-gc
+```
+
 ### Forcing deletion of images that have multiple tags
 
 By default, docker will not remove an image if it is tagged in multiple
