@@ -167,7 +167,7 @@ function container_log() {
 
     while IFS='' read -r containerid
     do
-        log "$prefix $containerid $(docker inspect -f {{.Name}} $containerid)"
+        log "$prefix $containerid $(${DOCKER} inspect -f {{.Name}} $containerid)"
     done < "$filename"
 }
 
@@ -177,7 +177,7 @@ function image_log() {
 
     while IFS='' read -r imageid
     do
-        log "$prefix $imageid $(docker inspect -f {{.RepoTags}} $imageid)"
+        log "$prefix $imageid $(${DOCKER} inspect -f {{.RepoTags}} $imageid)"
     done < "$filename"
 }
 
