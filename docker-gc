@@ -218,7 +218,7 @@ fi
 container_log "Container not running" containers.exited
 
 # Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
-echo -n "" > containers.reap.tmp
+> containers.reap.tmp
 cat containers.exited | while read line
 do
     EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
@@ -243,7 +243,7 @@ sort | uniq > images.used
 $DOCKER images -q --no-trunc | sort | uniq > images.all
 
 # Find images that are created at least GRACE_PERIOD_SECONDS ago
-echo -n "" > images.reap.tmp
+> images.reap.tmp
 cat images.all | while read line
 do
     CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
