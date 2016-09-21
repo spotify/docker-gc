@@ -222,7 +222,10 @@ container_log "Container not running" containers.exited
 cat containers.exited | while read line
 do
     EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
-    ELAPSED=$(elapsed_time $EXITED)
+    CREATED=$(${DOCKER} inspect -f "{{json .Created}}" ${line})
+    ELAPSED_EXITED=$(elapsed_time $EXITED)
+    ELAPSED_CREATED=$(elapsed_time $CREATED)
+    ELAPSED=$( (( $ELAPSED_EXITED >= $ELAPSED_CREATED )) && echo "$ELAPSED_EXITED" || echo "$ELAPSED_CREATED" )
     if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
         echo $line >> containers.reap.tmp
     fi
