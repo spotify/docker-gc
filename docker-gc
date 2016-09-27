@@ -133,9 +133,9 @@ function compute_exclude_ids() {
     # Pass the values (imageid) through regex
     for i in "${images[@]}"
     do
-        if [ ! -z $(echo "$i" | grep -f "$PROCESSED_EXCLUDES") ]
+        if [ ! -z $(echo "$i" | grep -E -f "$PROCESSED_EXCLUDES") ]
         then
-            echo "$i" | grep -E -f $PROCESSED_EXCLUDES  >> $EXCLUDE_IDS_FILE
+            echo "$i" >> $EXCLUDE_IDS_FILE
         fi
     done
 
