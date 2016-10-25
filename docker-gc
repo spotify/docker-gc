@@ -158,7 +158,7 @@ function log() {
     if [[ $LOG_TO_SYSLOG -gt 0 ]]; then
         logger -i -t "$SYSLOG_TAG" -p "$SYSLOG_FACILITY.$SYSLOG_LEVEL" "$msg"
     else
-        echo "$msg"
+        echo "[$(date +'%Y-%m-%dT%H:%M:%S')] [INFO] : $msg"
     fi
 }
 
