@@ -37,7 +37,7 @@
 # containers were removed. To enable logging to syslog, set LOG_TO_SYSLOG=1.
 # When disabled, this script will instead log to standard out. When syslog is
 # enabled, the syslog facility and logger can be configured with
-# $SYSLOG_FACILITY and $SYSLOG_LEVEL respectively. 
+# $SYSLOG_FACILITY and $SYSLOG_LEVEL respectively.
 
 set -o nounset
 set -o errexit
@@ -76,7 +76,7 @@ fi
 EXCLUDE_CONTAINERS_FROM_GC=${EXCLUDE_CONTAINERS_FROM_GC:=/etc/docker-gc-exclude-containers}
 if [ ! -f "$EXCLUDE_CONTAINERS_FROM_GC" ]
 then
-  EXCLUDE_CONTAINERS_FROM_GC=/dev/null  
+  EXCLUDE_CONTAINERS_FROM_GC=/dev/null
 fi
 
 EXCLUDE_IDS_FILE="exclude_ids"
@@ -144,7 +144,7 @@ function compute_exclude_container_ids() {
         return
     fi
     # Find all docker images
-    # Filter out with matching names 
+    # Filter out with matching names
     # and put them to $EXCLUDE_CONTAINER_IDS_FILE
     $DOCKER ps -a \
         | grep -E "$PROCESSED_EXCLUDES" \
@@ -158,7 +158,7 @@ function log() {
     if [[ $LOG_TO_SYSLOG -gt 0 ]]; then
         logger -i -t "$SYSLOG_TAG" -p "$SYSLOG_FACILITY.$SYSLOG_LEVEL" "$msg"
     else
-        echo "$msg"
+        echo "[$(date +'%Y-%m-%dT%H:%M:%S')] [INFO] : $msg"
     fi
 }
 
