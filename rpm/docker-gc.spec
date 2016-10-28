@@ -2,6 +2,7 @@ Name: docker-gc
 Version: 0.1.0
 Release: 1%{?dist}
 Summary: Docker garbage collection of containers and images.
+BuildArch: noarch
 
 License: Apache
 
