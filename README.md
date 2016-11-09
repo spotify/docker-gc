@@ -44,14 +44,19 @@ $ dpkg -i ../docker-gc_0.0.4_all.deb
 ```
 
 This installs the `docker-gc` script into `/usr/sbin`. If you want it to
-run as a cron job, you can configure it now by dropping a file like this
-into `/etc/cron.hourly/`.
+run as a cron job, you can configure it now by creating a root-owned 
+executable file `/etc/cron.hourly/docker-gc` with the following contents:
 
 ```
 #!/bin/bash
 /usr/sbin/docker-gc
 ```
 
+To test that the job will actually run you can use this command
+
+```
+run-parts --test /etc/cron.hourly
+```
 
 ## Manual Usage
 
