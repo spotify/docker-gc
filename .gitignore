@@ -1,0 +1,5 @@
+# ignore pacman build artifacts
+/pacman/pkg/*
+/pacman/src/*
+/pacman/docker-gc/*
+/pacman/*.tar.xz

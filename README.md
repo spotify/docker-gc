@@ -58,6 +58,25 @@ To test that the job will actually run you can use this command
 run-parts --test /etc/cron.hourly
 ```
 
+## Building the Pacman Package
+
+
+```sh
+$ git clone https://github.com/spotify/docker-gc.git
+$ cd docker-gc/pacman
+$ makepkg -s
+```
+
+## Installing the Pacman Package
+
+```sh
+$ pacman -U docker-gc_0.0.4-1.tar.xz
+```
+
+This installs the `docker-gc` script into `/usr/bin`. Since `/usr/sbin` is a
+link to `/usr/bin` in archlinux you can follow the cron instructions from the
+debian section.
+
 ## Manual Usage
 
 To use the script manually, run `docker-gc`. The system user under

@@ -1,0 +1,27 @@
+# Maintainer: Spotify
+# Contributor: Markus Plangg <mksplg at gmail dot com> via aur
+# Contributor: Bram Swenson <bram at craniumisajar dot com> 
+pkgname=docker-gc
+pkgver="0.1.1.$(git rev-parse --short HEAD)"
+pkgrel=1
+pkgdesc='A simple Docker container and image garbage collection script'
+arch=('any')
+url='https://github.com/spotify/docker-gc'
+license=('Apache')
+provides=("${pkgname}")
+conflicts=("${pkgname%-git}")
+source=('git+https://github.com/spotify/docker-gc.git')
+md5sums=('SKIP')
+
+depends=('bash')
+makedepends=('git')
+
+pkgver() {
+  cd "$srcdir/${pkgname}"
+  printf "0.1.1.%s" "$(git rev-parse --short HEAD)"
+}
+
+package() {
+  install -D -m755 "${pkgname}"/docker-gc "${pkgdir}/usr/bin/docker-gc"
+  install -d -m755 "${pkgdir}"/var/lib/docker-gc
+}
