@@ -44,6 +44,7 @@ set -o errexit
 
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
+REMOVE_ASSOCIATED_VOLUME=${REMOVE_ASSOCIATED_VOLUME=1}
 FORCE_CONTAINER_REMOVAL=${FORCE_CONTAINER_REMOVAL:=0}
 FORCE_IMAGE_REMOVAL=${FORCE_IMAGE_REMOVAL:=0}
 DOCKER=${DOCKER:=docker}
@@ -182,6 +183,16 @@ function image_log() {
     done < "$filename"
 }
 
+function volumes_log() {
+    prefix=$1
+    filename=$2
+
+    while IFS='' read -r volumeid
+    do
+        log "$prefix $volumeid"
+    done < "$filename"
+}
+
 # Change into the state directory (and create it if it doesn't exist)
 if [ ! -d "$STATE_DIR" ]
 then
@@ -261,6 +272,15 @@ FORCE_CONTAINER_FLAG=""
 if [[ $FORCE_CONTAINER_REMOVAL -gt 0 ]]; then
     FORCE_CONTAINER_FLAG="-f"
 fi
+
+# Remove associated volume, so that we won't create new orphan volumes.
+if [[ $REMOVE_ASSOCIATED_VOLUME -gt 0 ]]; then
+    if [[ -z $FORCE_CONTAINER_FLAG ]]; then
+        FORCE_CONTAINER_FLAG="-v"
+    else
+        FORCE_CONTAINER_FLAG=$FORCE_CONTAINER_FLAG"v"
+    fi
+fi
 # Reap containers.
 if [[ $DRY_RUN -gt 0 ]]; then
     container_log "The following container would have been removed" containers.reap
@@ -283,3 +303,17 @@ else
     xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
 fi
 
+# Find all volumes
+$DOCKER volume ls -q > volumes.all
+
+# Find all  volumes that are in use
+$DOCKER inspect --format="{{range .Mounts}} {{.Name}} {{end}}" $($DOCKER ps -aq) | xargs -I {} sh -c "echo {} | tr -d ' '" > volumes.used
+
+comm -23 volumes.all volumes.used > volumes.reap
+
+if [[ $DRY_RUN -gt 0 ]]; then
+    volumes_log "The following volume would have been removed" volumes.reap
+else
+    volumes_log "Removing volume" volumes.reap
+    xargs -n 1 $DOCKER rm < volumes.reap &>/dev/null || true
+fi
