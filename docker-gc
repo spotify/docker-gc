@@ -55,6 +55,7 @@ SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
 SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 DRY_RUN=${DRY_RUN:=0}
 EXCLUDE_DEAD=${EXCLUDE_DEAD:=0}
+REMOVE_VOLUMES=${REMOVE_VOLUMES:=0}
 
 for pid in $(pidof -s docker-gc); do
     if [[ $pid != $$ ]]; then
@@ -303,17 +304,19 @@ else
     xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
 fi
 
-# Find all volumes
-$DOCKER volume ls -q > volumes.all
+if [[ $REMOVE_VOLUMES -gt 0]]; then
+    # Find all volumes
+    $DOCKER volume ls -q > volumes.all
 
-# Find all  volumes that are in use
-$DOCKER inspect --format="{{range .Mounts}} {{.Name}} {{end}}" $($DOCKER ps -aq) | xargs -I {} sh -c "echo {} | tr -d ' '" > volumes.used
+    # Find all  volumes that are in use
+    $DOCKER inspect --format="{{range .Mounts}}{{.Name}}{{end}}" $($DOCKER ps -aq) | sed '/^$/d' > volumes.used
 
-comm -23 volumes.all volumes.used > volumes.reap
+    comm -23 volumes.all volumes.used > volumes.reap
 
-if [[ $DRY_RUN -gt 0 ]]; then
-    volumes_log "The following volume would have been removed" volumes.reap
-else
-    volumes_log "Removing volume" volumes.reap
-    xargs -n 1 $DOCKER rm < volumes.reap &>/dev/null || true
+    if [[ $DRY_RUN -gt 0 ]]; then
+        volumes_log "The following volume would have been removed" volumes.reap
+    else
+        volumes_log "Removing volume" volumes.reap
+        xargs -n 1 $DOCKER rm < volumes.reap &>/dev/null || true
+    fi
 fi

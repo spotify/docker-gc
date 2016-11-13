@@ -13,7 +13,7 @@ A simple Docker container and image garbage collection script.
 
 * Containers that exited more than an hour ago are removed.
 * Images that don't belong to any remaining container after that are removed.
-* Volumes that are not associated to any remaining container after removal
+* Optionally, remove volumes that are not associated to any remaining container after removal
 
 Although docker normally prevents removal of images that are in use by
 containers, we take extra care to not remove any image tags (e.g., ubuntu:14.04,
@@ -175,3 +175,9 @@ $ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spot
 
 The `/etc` directory is also mapped so that it can read any exclude files
 that you've created.
+
+If you want to remove volumes, you can do it so by passing REMOVE_VOLUMES env var set to 1.
+
+```sh
+$ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc -e REMOVE_VOLUMES=1 spotify/docker-gc
+```
