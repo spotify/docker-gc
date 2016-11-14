@@ -56,6 +56,7 @@ SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 DRY_RUN=${DRY_RUN:=0}
 EXCLUDE_DEAD=${EXCLUDE_DEAD:=0}
 REMOVE_VOLUMES=${REMOVE_VOLUMES:=0}
+EXCLUDE_VOLUMES_IDS_FILE=${EXCLUDE_VOLUMES_IDS_FILE:=/etc/docker-gc-exclude-volumes}
 
 for pid in $(pidof -s docker-gc); do
     if [[ $pid != $$ ]]; then
@@ -311,10 +312,18 @@ if [[ $REMOVE_VOLUMES -gt 0 ]]; then
     set -e
     # If docker volume ls fails, then is probably not supported by either client or server
     if [[ $VOLUMES -gt 0 ]]; then
-        MESSAGE="Removing volumes is not supported for for docker version "$($DOCKER version --format="Client: {{.Client.Version}} Server: {{.Server.Version}}")
-        log "$MESSAGE"
+        set +e
+        VERSION=$($DOCKER version --format="Client: {{.Client.Version}} Server: {{.Server.Version}}" 2&>/dev/null)
+        FORMAT=$?
+        set -e
+        if [[ $FORMAT -gt 0 ]]; then
+            log "Removing volumes is not supported for Docker < 1.9.0"
+        else
+            MESSAGE="Removing volumes is not supported for for docker version "$($DOCKER version --format="Client: {{.Client.Version}} Server: {{.Server.Version}}") &
+            log "$MESSAGE"
+        fi
     else
-        $DOCKER volume ls --filter "dangling=true" -q > volumes.reap
+        $DOCKER volume ls --filter "dangling=true" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap
 
         if [[ $DRY_RUN -gt 0 ]]; then
             volumes_log "The following volume would have been removed" volumes.reap
