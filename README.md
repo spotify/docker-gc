@@ -184,8 +184,10 @@ $ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spot
 The `/etc` directory is also mapped so that it can read any exclude files
 that you've created.
 
-If you want to remove volumes, you can do it so by passing REMOVE_VOLUMES env var set to 1.
+If you want to remove volumes, you can do so by passing REMOVE_VOLUMES env var set to 1.
 
 ```sh
 $ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc -e REMOVE_VOLUMES=1 spotify/docker-gc
 ```
+
+If you want to remove volumes only for a specified driver, you can do it by passing VOLUME_DELETE_ONLY_DRIVER env var set to the driver name.
