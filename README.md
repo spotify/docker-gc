@@ -44,7 +44,7 @@ $ dpkg -i ../docker-gc_0.0.4_all.deb
 ```
 
 This installs the `docker-gc` script into `/usr/sbin`. If you want it to
-run as a cron job, you can configure it now by creating a root-owned 
+run as a cron job, you can configure it now by creating a root-owned
 executable file `/etc/cron.hourly/docker-gc` with the following contents:
 
 ```
@@ -88,11 +88,11 @@ redis:.*
 
 ### Excluding Containers From Garbage Collection
 
-There can also be containers (for example data only containers) which 
-you would like to exclude from garbage collection. To do so, create 
-`/etc/docker-gc-exclude-containers`, or if you want the file to be 
-read from elsewhere, set the `EXCLUDE_CONTAINERS_FROM_GC` environment 
-variable to its location. This file should container name patterns (in 
+There can also be containers (for example data only containers) which
+you would like to exclude from garbage collection. To do so, create
+`/etc/docker-gc-exclude-containers`, or if you want the file to be
+read from elsewhere, set the `EXCLUDE_CONTAINERS_FROM_GC` environment
+variable to its location. This file should container name patterns (in
 the `grep` sense), one per line, such as `mariadb-data`.
 
 An example container excludes file might contain:
@@ -174,3 +174,12 @@ $ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spot
 
 The `/etc` directory is also mapped so that it can read any exclude files
 that you've created.
+
+If your docker daemon is configured to run with
+[user namespace](https://docs.docker.com/engine/reference/commandline/dockerd/#/daemon-user-namespace-options),
+you will need to run the container with user namespace
+[turned off](https://docs.docker.com/engine/reference/commandline/dockerd/#/disable-user-namespace-for-a-container), e.g.:
+
+```sh
+$ docker run --rm --userns host -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spotify/docker-gc
+```
