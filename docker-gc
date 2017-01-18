@@ -44,6 +44,7 @@ set -o errexit
 
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
+REMOVE_ASSOCIATED_VOLUME=${REMOVE_ASSOCIATED_VOLUME=1}
 FORCE_CONTAINER_REMOVAL=${FORCE_CONTAINER_REMOVAL:=0}
 FORCE_IMAGE_REMOVAL=${FORCE_IMAGE_REMOVAL:=0}
 DOCKER=${DOCKER:=docker}
@@ -54,6 +55,9 @@ SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
 SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 DRY_RUN=${DRY_RUN:=0}
 EXCLUDE_DEAD=${EXCLUDE_DEAD:=0}
+REMOVE_VOLUMES=${REMOVE_VOLUMES:=0}
+EXCLUDE_VOLUMES_IDS_FILE=${EXCLUDE_VOLUMES_IDS_FILE:=/etc/docker-gc-exclude-volumes}
+VOLUME_DELETE_ONLY_DRIVER=${VOLUME_DELETE_ONLY_DRIVER:=locale}
 
 for pid in $(pidof -s docker-gc); do
     if [[ $pid != $$ ]]; then
@@ -182,6 +186,16 @@ function image_log() {
     done < "$filename"
 }
 
+function volumes_log() {
+    prefix=$1
+    filename=$2
+
+    while IFS='' read -r volumeid
+    do
+        log "$prefix $volumeid"
+    done < "$filename"
+}
+
 # Change into the state directory (and create it if it doesn't exist)
 if [ ! -d "$STATE_DIR" ]
 then
@@ -261,6 +275,15 @@ FORCE_CONTAINER_FLAG=""
 if [[ $FORCE_CONTAINER_REMOVAL -gt 0 ]]; then
     FORCE_CONTAINER_FLAG="-f"
 fi
+
+# Remove associated volume, so that we won't create new orphan volumes.
+if [[ $REMOVE_ASSOCIATED_VOLUME -gt 0 ]]; then
+    if [[ -z $FORCE_CONTAINER_FLAG ]]; then
+        FORCE_CONTAINER_FLAG="-v"
+    else
+        FORCE_CONTAINER_FLAG=$FORCE_CONTAINER_FLAG"v"
+    fi
+fi
 # Reap containers.
 if [[ $DRY_RUN -gt 0 ]]; then
     container_log "The following container would have been removed" containers.reap
@@ -283,3 +306,35 @@ else
     xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
 fi
 
+if [[ $REMOVE_VOLUMES -gt 0 ]]; then
+    set +e
+    $DOCKER volume ls --filter "dangling=true" -q &> /dev/null
+    VOLUMES=$?
+    set -e
+    # If docker volume ls fails, then is probably not supported by either client or server
+    if [[ $VOLUMES -gt 0 ]]; then
+        set +e
+        VERSION=$($DOCKER version --format="Client: {{.Client.Version}} Server: {{.Server.Version}}" 2&>/dev/null)
+        FORMAT=$?
+        set -e
+        if [[ $FORMAT -gt 0 ]]; then
+            log "Removing volumes is not supported for Docker < 1.9.0"
+        else
+            MESSAGE="Removing volumes is not supported for for docker version "$($DOCKER version --format="Client: {{.Client.Version}} Server: {{.Server.Version}}") &
+            log "$MESSAGE"
+        fi
+    else
+        if [[ -z "$VOLUME_DELETE_ONLY_DRIVER" ]]; then
+            $DOCKER volume ls --filter "dangling=true" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap
+        else
+            $DOCKER volume ls --filter "dangling=true" --filter "driver=$VOLUME_DELETE_ONLY_DRIVER" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap
+        fi
+
+        if [[ $DRY_RUN -gt 0 ]]; then
+            volumes_log "The following volume would have been removed" volumes.reap
+        else
+            volumes_log "Removing volume" volumes.reap
+            xargs -n 1 $DOCKER volume rm < volumes.reap &>/dev/null || true
+        fi
+    fi
+fi
