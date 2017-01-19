@@ -47,7 +47,6 @@ STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 FORCE_CONTAINER_REMOVAL=${FORCE_CONTAINER_REMOVAL:=0}
 FORCE_IMAGE_REMOVAL=${FORCE_IMAGE_REMOVAL:=0}
 DOCKER=${DOCKER:=docker}
-PID_DIR=${PID_DIR:=/var/run}
 LOG_TO_SYSLOG=${LOG_TO_SYSLOG:=0}
 SYSLOG_FACILITY=${SYSLOG_FACILITY:=user}
 SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
@@ -55,16 +54,17 @@ SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 DRY_RUN=${DRY_RUN:=0}
 EXCLUDE_DEAD=${EXCLUDE_DEAD:=0}
 
-for pid in $(pidof -s docker-gc); do
-    if [[ $pid != $$ ]]; then
-        echo "[$(date)] : docker-gc : Process is already running with PID $pid"
-        exit 1
-    fi
-done
+function error() {
+    local error_str="$*"
 
-trap "rm -f -- '$PID_DIR/dockergc'" EXIT
+    echo $error_str
+    exit 1
+}
 
-echo $$ > $PID_DIR/dockergc
+exec 200>"${STATE_DIR}/doker-gc.lock"
+
+flock -n 200 \
+    || error "[$(date)] : docker-gc : Process is already running"
 
 
 EXCLUDE_FROM_GC=${EXCLUDE_FROM_GC:=/etc/docker-gc-exclude}
@@ -211,7 +211,7 @@ comm -23 containers.all containers.running > containers.exited
 if [[ $EXCLUDE_DEAD -gt 0 ]]; then
     echo "Excluding dead containers"
     # List dead containers
-    $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead    
+    $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead
     comm -23 containers.exited containers.dead > containers.exited.tmp
     cat containers.exited.tmp > containers.exited
 fi
@@ -282,4 +282,3 @@ else
     image_log "Removing image" images.reap
     xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
 fi
-
