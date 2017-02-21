@@ -238,7 +238,7 @@ comm -23 containers.all containers.reap > containers.keep
 # List images used by containers that we keep.
 cat containers.keep |
 xargs -n 1 $DOCKER inspect -f '{{.Image}}' 2>/dev/null |
-sort | uniq > images.used
+sed 's/sha256://' | sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
 echo -n "" > images.all
@@ -248,6 +248,7 @@ do
 done | sort | uniq | while read line
 do
   $DOCKER images --no-trunc --format "{{.ID}} {{.CreatedAt}}" $line \
+    | sed 's/sha256://' \
     | sort -k 2 -r \
     | tail -n +$((MINIMUM_IMAGES_TO_SAVE+1)) \
     | cut -f 1 -d " " \
