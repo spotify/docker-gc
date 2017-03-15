@@ -102,13 +102,13 @@ mariadb-data
 drunk_goodall
 ```
 
-### Excluding Volumes From Gargbage Collection
+### Excluding Volumes From Garbage Collection
 
-There can be occasions where you dont want to remove a dangling volume.
-In such case, you can create `/etc/docker-gc-exclude-volumes` (or specify
-`EXCLUDE_VOLUMES_IDS_FILE` env var with any path for such file), containing
-name patterns (in the `grep` sense), one per line, of volumes that will
-be excluded from garbage collection.
+There can be occasions where you don't want to remove a dangling volume.
+To enable this functionality you can create a file named
+`/etc/docker-gc-exclude-volumes` (or specify `EXCLUDE_VOLUMES_IDS_FILE` env var
+with any path for such file), containing name patterns (in the `grep` sense),
+one per line, of volumes that will be excluded from garbage collection.
 
 ### Forcing deletion of images that have multiple tags
 
