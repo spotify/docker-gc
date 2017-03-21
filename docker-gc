@@ -73,6 +73,12 @@ then
   EXCLUDE_FROM_GC=/dev/null
 fi
 
+INCLUDE_IN_GC=${INCLUDE_IN_GC:=/etc/docker-gc-include}
+if [ ! -f "$INCLUDE_IN_GC" ]
+then
+  INCLUDE_IN_GC=/dev/null
+fi
+
 EXCLUDE_CONTAINERS_FROM_GC=${EXCLUDE_CONTAINERS_FROM_GC:=/etc/docker-gc-exclude-containers}
 if [ ! -f "$EXCLUDE_CONTAINERS_FROM_GC" ]
 then
@@ -80,6 +86,7 @@ then
 fi
 
 EXCLUDE_IDS_FILE="exclude_ids"
+INCLUDE_IDS_FILE="include_ids"
 EXCLUDE_CONTAINER_IDS_FILE="exclude_container_ids"
 
 function date_parse {
@@ -130,6 +137,21 @@ function compute_exclude_ids() {
         | grep -f $PROCESSED_EXCLUDES 2>/dev/null \
         | cut -d' ' -f3 \
         | sed 's/^/^(sha256:)?/' > $EXCLUDE_IDS_FILE
+}
+
+function compute_include_ids() {
+    # Find images that match patterns in the INCLUDE_IN_GC file and put their
+    # id prefixes into $INCLUDE_IDS_FILE, prefixed with ^
+
+    PROCESSED_INCLUDES="processed_includes.tmp"
+    sed 's/^\(.*\)$/ \1 /' $INCLUDE_IN_GC | sed '/^ *$/d' > $PROCESSED_INCLUDES
+
+    $DOCKER images \
+        | tail -n+2 \
+        | sed 's/^\([^ ]*\) *\([^ ]*\) *\([^ ]*\).*/ \1:\2 \3 /' \
+        | grep -f $PROCESSED_INCLUDES 2>/dev/null \
+        | cut -d' ' -f3 \
+        | sed 's/^/^(sha256:)?/' > $INCLUDE_IDS_FILE
 }
 
 function compute_exclude_container_ids() {
@@ -202,6 +224,9 @@ container_log "Container running" containers.running
 # compute ids of container images to exclude from GC
 compute_exclude_ids
 
+# compute ids of container images to include in GC
+compute_include_ids
+
 # compute ids of containers to exclude from GC
 compute_exclude_container_ids
 
@@ -211,7 +236,7 @@ comm -23 containers.all containers.running > containers.exited
 if [[ $EXCLUDE_DEAD -gt 0 ]]; then
     echo "Excluding dead containers"
     # List dead containers
-    $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead    
+    $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead
     comm -23 containers.exited containers.dead > containers.exited.tmp
     cat containers.exited.tmp > containers.exited
 fi
@@ -253,7 +278,13 @@ do
         echo $line >> images.reap.tmp
     fi
 done
-comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
+
+if [ -s $INCLUDE_IDS_FILE ]
+then
+  comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE | grep -E -f $INCLUDE_IDS_FILE > images.reap || true
+else
+  comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
+fi
 
 # Use -f flag on docker rm command; forces removal of images that are in Dead
 # status or give errors when removing.
@@ -282,4 +313,3 @@ else
     image_log "Removing image" images.reap
     xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
 fi
-
