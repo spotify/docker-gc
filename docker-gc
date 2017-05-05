@@ -252,7 +252,6 @@ do
     | sort --key 2 --reverse \
     | tail --lines +$((MINIMUM_IMAGES_TO_SAVE+1)) \
     | cut --fields 1 --delimiter " " \
-    | sort \
     | uniq >> images.all
 done
 
