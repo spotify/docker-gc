@@ -113,6 +113,15 @@ you can enable a force flag to override this default.
 FORCE_IMAGE_REMOVAL=1 docker-gc
 ```
 
+### Preserving a minimum number of images for every repository
+
+You might want to always keep a set of the most recent images for any
+repository. For example, if you are continually rebuilding an image during
+development you would want to clear out all but the most recent version of an
+image. To do so, set the `MINIMUM_IMAGES_TO_SAVE=1` environment variable. You
+can preserve any count of the most recent images, e.g. save the most recent 10
+with `MINIMUM_IMAGES_TO_SAVE=10`.
+
 ### Forcing deletion of containers
 
 By default, if an error is encountered when cleaning up a container, Docker
