@@ -249,9 +249,9 @@ do
 done | sort | uniq | while read line
 do
   $DOCKER images --no-trunc --format "{{.ID}} {{.CreatedAt}}" $line \
-    | sort --key 2 --reverse \
-    | tail --lines +$((MINIMUM_IMAGES_TO_SAVE+1)) \
-    | cut --fields 1 --delimiter " " \
+    | sort -k 2 -r \
+    | tail -n +$((MINIMUM_IMAGES_TO_SAVE+1)) \
+    | cut -f 1 -d " " \
     | uniq >> images.all
 done
 
