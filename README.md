@@ -150,6 +150,14 @@ By default, docker-gc will proceed with deletion of containers and images. To te
 DRY_RUN=1 docker-gc
 ```
 
+### Exclude by label
+You exclude containers and images having a certain label by setting the `EXCLUDE_BY_LABEL` variable.
+
+Example: ignore any containers or images labeled with 'docker-gc-ignore'
+```
+EXCLUDE_BY_LABEL=docker-gc-ignore
+```
+
 
 ## Running as a Docker Image
 
