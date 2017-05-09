@@ -56,7 +56,8 @@ SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 DRY_RUN=${DRY_RUN:=0}
 EXCLUDE_DEAD=${EXCLUDE_DEAD:=0}
 
-for pid in $(pidof -s docker-gc); do
+
+for pid in $(pgrep -f 'docker-gc'); do
     if [[ $pid != $$ ]]; then
         echo "[$(date)] : docker-gc : Process is already running with PID $pid"
         exit 1
