@@ -40,7 +40,7 @@ If you get lintian errors during `debuild`, try `debuild --no-lintian -us -uc -b
 ## Installing the Debian Package
 
 ```sh
-$ dpkg -i ../docker-gc_0.0.4_all.deb
+$ dpkg -i ../docker-gc_0.1.0_all.deb
 ```
 
 This installs the `docker-gc` script into `/usr/sbin`. If you want it to
