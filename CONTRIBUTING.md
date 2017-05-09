@@ -31,9 +31,6 @@ If you create a minor bugfix, feel free to submit a PR.
 If your PR is for a significant change or a new feature, feel free to ask for our feedback
 before writing code to check we're on the same page.
 
-You can build and test by following [instructions here][1].
-
-  [1]: https://github.com/spotify/docker-maven-plugin#testing
   [2]: https://github.com/spotify/helios
   [3]: https://github.com/spotify/docker-client
   [4]: https://github.com/spotify/docker-maven-plugin
