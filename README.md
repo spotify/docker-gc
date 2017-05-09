@@ -24,6 +24,14 @@ still on disk.
 This script is intended to be run as a cron job, but you can also run it as a Docker
 container (see [below](#running-as-a-docker-container)).
 
+## Using the install script
+This script installs the dependencies needed to build docker-gc, then adds docker-gc 
+as daily cron job. Finally, it tests wether it is installed successfully as cron job.  
+
+```sh
+curl -s https://raw.githubusercontent.com/RubieV/docker-gc/feature/install/install.sh | bash
+```
+
 ## Building the Debian Package
 
 
