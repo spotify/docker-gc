@@ -312,6 +312,11 @@ if [[ $REMOVE_VOLUMES -gt 0 ]]; then
     VOLUMES=$?
     set -e
     # If docker volume ls fails, then is probably not supported by either client or server
+    if [ ! -f "$EXCLUDE_VOLUMES_IDS_FILE" ]
+    then
+        EXCLUDE_VOLUMES_IDS_FILE=/dev/null
+    fi
+
     if [[ $VOLUMES -gt 0 ]]; then
         set +e
         VERSION=$($DOCKER version --format="Client: {{.Client.Version}} Server: {{.Server.Version}}" 2&>/dev/null)
