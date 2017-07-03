@@ -178,7 +178,7 @@ The docker-gc container requires access to the docker socket in order to
 function, so you need to map it when running, e.g.:
 
 ```sh
-$ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc:ro spotify/docker-gc
+$ docker run --rm --privileged -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc:ro spotify/docker-gc
 ```
 
 The `/etc` directory is also mapped so that it can read any exclude files
