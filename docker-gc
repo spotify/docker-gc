@@ -55,6 +55,7 @@ SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
 SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 DRY_RUN=${DRY_RUN:=0}
 EXCLUDE_DEAD=${EXCLUDE_DEAD:=0}
+EXCLUDE_SERVICE_IMAGE=${EXCLUDE_SERVICE_IMAGE:=0}
 
 for pid in $(pidof -s docker-gc); do
     if [[ $pid != $$ ]]; then
@@ -115,6 +116,16 @@ function compute_exclude_ids() {
     # or imageid".  Also delete blank lines or lines that only contain
     # whitespace
     sed 's/^\(.*\)$/ \1 /' $EXCLUDE_FROM_GC | sed '/^ *$/d' > $PROCESSED_EXCLUDES
+
+    # Keeping images used by a docker service on other node could be better,
+    # because those images are likely to be needed when swarm reschedule
+    # the service.
+    if [[ $EXCLUDE_SERVICE_IMAGE -gt 0 ]]; then
+        $DOCKER service ls \
+            | tail -n+2 \
+            | sed 's/^\([^ ]*\) *\([^ ]*\) *\([^ ]*\) *\([^ ]*\) *\([^ ]*\).*/ \5 /' >> $PROCESSED_EXCLUDES
+    fi
+
     # The following looks a bit of a mess, but here's what it does:
     # 1. Get images
     # 2. Skip header line
