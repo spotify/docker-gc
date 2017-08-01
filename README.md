@@ -184,11 +184,11 @@ $ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc:ro s
 The `/etc` directory is also mapped so that it can read any exclude files
 that you've created.
 
-If your docker daemon is configured to run with
-[user namespace](https://docs.docker.com/engine/reference/commandline/dockerd/#/daemon-user-namespace-options),
-you will need to run the container with user namespace
-[turned off](https://docs.docker.com/engine/reference/commandline/dockerd/#/disable-user-namespace-for-a-container), e.g.:
+If your docker daemon is configured to run with user namespace, you will need to
+run the container with [user namespace disabled][disable-user-namespace]:
 
 ```sh
 $ docker run --rm --userns host -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spotify/docker-gc
 ```
+
+[disable-user-namespace]: https://docs.docker.com/engine/reference/commandline/dockerd/#disable-user-namespace-for-a-container
