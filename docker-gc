@@ -55,18 +55,17 @@ SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
 SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 DRY_RUN=${DRY_RUN:=0}
 EXCLUDE_DEAD=${EXCLUDE_DEAD:=0}
+PIDFILE=$PID_DIR/dockergc
 
-for pid in $(pidof -s docker-gc); do
-    if [[ $pid != $$ ]]; then
-        echo "[$(date)] : docker-gc : Process is already running with PID $pid"
-        exit 1
-    fi
-done
+exec 3>>$PIDFILE
+if ! flock -x -n 3; then
+  echo "[$(date)] : docker-gc : Process is already running"
+  exit 1
+fi
 
-trap "rm -f -- '$PID_DIR/dockergc'" EXIT
+trap "rm -f -- '$PIDFILE'" EXIT
 
-echo $$ > $PID_DIR/dockergc
-
+echo $$ > $PIDFILE
 
 EXCLUDE_FROM_GC=${EXCLUDE_FROM_GC:=/etc/docker-gc-exclude}
 if [ ! -f "$EXCLUDE_FROM_GC" ]
@@ -212,7 +211,7 @@ comm -23 containers.all containers.running > containers.exited
 if [[ $EXCLUDE_DEAD -gt 0 ]]; then
     echo "Excluding dead containers"
     # List dead containers
-    $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead    
+    $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead
     comm -23 containers.exited containers.dead > containers.exited.tmp
     cat containers.exited.tmp > containers.exited
 fi
