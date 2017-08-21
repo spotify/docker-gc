@@ -41,11 +41,11 @@ If you get lintian errors during `debuild`, try `debuild --no-lintian -us -uc -b
 ## Installing the Debian Package
 
 ```sh
-$ dpkg -i ../docker-gc_0.0.4_all.deb
+$ dpkg -i ../docker-gc_0.1.0_all.deb
 ```
 
 This installs the `docker-gc` script into `/usr/sbin`. If you want it to
-run as a cron job, you can configure it now by creating a root-owned 
+run as a cron job, you can configure it now by creating a root-owned
 executable file `/etc/cron.hourly/docker-gc` with the following contents:
 
 ```
@@ -89,11 +89,11 @@ redis:.*
 
 ### Excluding Containers From Garbage Collection
 
-There can also be containers (for example data only containers) which 
-you would like to exclude from garbage collection. To do so, create 
-`/etc/docker-gc-exclude-containers`, or if you want the file to be 
-read from elsewhere, set the `EXCLUDE_CONTAINERS_FROM_GC` environment 
-variable to its location. This file should container name patterns (in 
+There can also be containers (for example data only containers) which
+you would like to exclude from garbage collection. To do so, create
+`/etc/docker-gc-exclude-containers`, or if you want the file to be
+read from elsewhere, set the `EXCLUDE_CONTAINERS_FROM_GC` environment
+variable to its location. This file should container name patterns (in
 the `grep` sense), one per line, such as `mariadb-data`.
 
 An example container excludes file might contain:
@@ -121,6 +121,15 @@ you can enable a force flag to override this default.
 ```
 FORCE_IMAGE_REMOVAL=1 docker-gc
 ```
+
+### Preserving a minimum number of images for every repository
+
+You might want to always keep a set of the most recent images for any
+repository. For example, if you are continually rebuilding an image during
+development you would want to clear out all but the most recent version of an
+image. To do so, set the `MINIMUM_IMAGES_TO_SAVE=1` environment variable. You
+can preserve any count of the most recent images, e.g. save the most recent 10
+with `MINIMUM_IMAGES_TO_SAVE=10`.
 
 ### Forcing deletion of containers
 
@@ -159,7 +168,7 @@ the container will start up, run a single garbage collection, and shut down.
 The image is published as `spotify/docker-gc`.
 
 #### Building the Docker Image
-The image is currently built with Docker 1.6.2, but to build it against a newer
+The image is currently built with Docker 1.12.4, but to build it against a newer
 Docker version (to ensure that the API version of the command-line interface
 matches with your Docker daemon), simply edit [the `ENV DOCKER_VERSION` line in
 `Dockerfile`][dockerfile-ENV] prior to the build step below.
@@ -191,3 +200,12 @@ $ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc -e R
 ```
 
 If you want to remove volumes only for a specified driver, you can do it by passing VOLUME_DELETE_ONLY_DRIVER env var set to the driver name.
+
+If your docker daemon is configured to run with user namespace, you will need to
+run the container with [user namespace disabled][disable-user-namespace]:
+
+```sh
+$ docker run --rm --userns host -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spotify/docker-gc
+```
+
+[disable-user-namespace]: https://docs.docker.com/engine/reference/commandline/dockerd/#disable-user-namespace-for-a-container
