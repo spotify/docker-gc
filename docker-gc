@@ -140,7 +140,7 @@ function compute_exclude_container_ids() {
         | sed -e 's/ /\|/g'`
     # The empty string would match everything
     if [ "$PROCESSED_EXCLUDES" = "" ]; then
-        touch $EXCLUDE_CONTAINER_IDS_FILE
+        > $EXCLUDE_CONTAINER_IDS_FILE
         return
     fi
     # Find all docker images
