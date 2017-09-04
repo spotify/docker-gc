@@ -222,8 +222,10 @@ container_log "Container not running" containers.exited
 > containers.reap.tmp
 cat containers.exited | while read line
 do
-    EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
-    ELAPSED=$(elapsed_time $EXITED)
+    # The .Created timestamp only exists for ontainers in the Created State. 
+    # The .State.FinishedAt is invalid for containers in the Created State.
+    IFS=' ' read  FINISHED_AT CREATED <<< $(${DOCKER} inspect -f "{{json .State.FinishedAt}} {{json .Created}}" ${line})
+    ELAPSED=$(elapsed_time ${CREATED:-$FINISHED_AT})
     if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
         echo $line >> containers.reap.tmp
     fi
