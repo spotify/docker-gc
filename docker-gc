@@ -55,6 +55,8 @@ SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
 SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 DRY_RUN=${DRY_RUN:=0}
 EXCLUDE_DEAD=${EXCLUDE_DEAD:=0}
+EXCLUDE_CREATED=${EXCLUDE_CREATED:=0}
+EXCLUDE_ALL_IMAGES=${EXCLUDE_ALL_IMAGES:=0}
 PIDFILE=$PID_DIR/dockergc
 
 exec 3>>$PIDFILE
@@ -211,8 +213,16 @@ comm -23 containers.all containers.running > containers.exited
 if [[ $EXCLUDE_DEAD -gt 0 ]]; then
     echo "Excluding dead containers"
     # List dead containers
-    $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead
+    $DOCKER ps -q --no-trunc -a -f status=dead | sort | uniq > containers.dead
     comm -23 containers.exited containers.dead > containers.exited.tmp
+    cat containers.exited.tmp > containers.exited
+fi
+
+if [[ $EXCLUDE_CREATED -gt 0 ]]; then
+    echo "Excluding created but not running containers"
+    # List create but not running containers
+    $DOCKER ps -q --no-trunc -a -f status=created | sort | uniq > containers.created
+    comm -23 containers.exited containers.created > containers.exited.tmp
     cat containers.exited.tmp > containers.exited
 fi
 
@@ -255,16 +265,21 @@ do
 done
 
 # Find images that are created at least GRACE_PERIOD_SECONDS ago
-> images.reap.tmp
-cat images.all | sort | uniq | while read line
-do
-    CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
-    ELAPSED=$(elapsed_time $CREATED)
-    if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
-        echo $line >> images.reap.tmp
-    fi
-done
-comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
+if [[ $EXCLUDE_ALL_IMAGES -gt 0 ]]; then
+	echo "Exclude all images"
+	> images.reap
+else
+    > images.reap.tmp
+    cat images.all | sort | uniq | while read line
+    do
+        CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
+        ELAPSED=$(elapsed_time $CREATED)
+        if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
+            echo $line >> images.reap.tmp
+        fi
+    done
+    comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
+fi
 
 # Use -f flag on docker rm command; forces removal of images that are in Dead
 # status or give errors when removing.
