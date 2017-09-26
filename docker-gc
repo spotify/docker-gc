@@ -254,6 +254,9 @@ do
     | uniq >> images.all
 done
 
+# Add dangling images to list.
+$DOCKER images --no-trunc --format "{{.ID}}" --filter dangling=true >> images.all
+
 # Find images that are created at least GRACE_PERIOD_SECONDS ago
 > images.reap.tmp
 cat images.all | sort | uniq | while read line
