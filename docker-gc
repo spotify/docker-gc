@@ -43,6 +43,7 @@ set -o nounset
 set -o errexit
 
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
+MINIMUM_CONTAINERS_TO_SAVE=${MINIMUM_CONTAINERS_TO_SAVE:=0}
 MINIMUM_IMAGES_TO_SAVE=${MINIMUM_IMAGES_TO_SAVE:=0}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 FORCE_CONTAINER_REMOVAL=${FORCE_CONTAINER_REMOVAL:=0}
@@ -55,6 +56,8 @@ SYSLOG_LEVEL=${SYSLOG_LEVEL:=info}
 SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 DRY_RUN=${DRY_RUN:=0}
 EXCLUDE_DEAD=${EXCLUDE_DEAD:=0}
+EXCLUDE_CREATED=${EXCLUDE_CREATED:=0}
+EXCLUDE_ALL_IMAGES=${EXCLUDE_ALL_IMAGES:=0}
 PIDFILE=$PID_DIR/dockergc
 
 exec 3>>$PIDFILE
@@ -140,7 +143,7 @@ function compute_exclude_container_ids() {
         | sed -e 's/ /\|/g'`
     # The empty string would match everything
     if [ "$PROCESSED_EXCLUDES" = "" ]; then
-        touch $EXCLUDE_CONTAINER_IDS_FILE
+        > $EXCLUDE_CONTAINER_IDS_FILE
         return
     fi
     # Find all docker images
@@ -211,8 +214,16 @@ comm -23 containers.all containers.running > containers.exited
 if [[ $EXCLUDE_DEAD -gt 0 ]]; then
     echo "Excluding dead containers"
     # List dead containers
-    $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead
+    $DOCKER ps -q --no-trunc -a -f status=dead | sort | uniq > containers.dead
     comm -23 containers.exited containers.dead > containers.exited.tmp
+    cat containers.exited.tmp > containers.exited
+fi
+
+if [[ $EXCLUDE_CREATED -gt 0 ]]; then
+    echo "Excluding created but not running containers"
+    # List create but not running containers
+    $DOCKER ps -q --no-trunc -a -f status=created | sort | uniq > containers.created
+    comm -23 containers.exited containers.created > containers.exited.tmp
     cat containers.exited.tmp > containers.exited
 fi
 
@@ -234,6 +245,21 @@ cat containers.reap.tmp | sort | uniq | grep -v -f $EXCLUDE_CONTAINER_IDS_FILE >
 
 # List containers that we will keep.
 comm -23 containers.all containers.reap > containers.keep
+
+# List containers that we will save.
+if [[ $MINIMUM_CONTAINERS_TO_SAVE -gt 0 ]]; then
+	> containers.save.tmp
+	$DOCKER images --no-trunc --format "{{.ID}}" | uniq | while read line
+	do
+		$DOCKER ps -a --no-trunc --format '{{.ID}} {{.CreatedAt}}' -f ancestor=$line \
+			| sort -k 2 \
+			| tail -n $MINIMUM_CONTAINERS_TO_SAVE \
+			| cut -f 1 -d " " >> containers.save.tmp
+	done
+	cat containers.save.tmp | sort > containers.save
+	comm -23 containers.reap containers.save > containers.reap.tmp0
+	mv containers.reap.tmp0 containers.reap
+fi
 
 # List images used by containers that we keep.
 cat containers.keep |
@@ -258,16 +284,21 @@ done
 $DOCKER images --no-trunc --format "{{.ID}}" --filter dangling=true >> images.all
 
 # Find images that are created at least GRACE_PERIOD_SECONDS ago
-> images.reap.tmp
-cat images.all | sort | uniq | while read line
-do
-    CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
-    ELAPSED=$(elapsed_time $CREATED)
-    if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
-        echo $line >> images.reap.tmp
-    fi
-done
-comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
+if [[ $EXCLUDE_ALL_IMAGES -gt 0 ]]; then
+	echo "Exclude all images"
+	> images.reap
+else
+    > images.reap.tmp
+    cat images.all | sort | uniq | while read line
+    do
+        CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
+        ELAPSED=$(elapsed_time $CREATED)
+        if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
+            echo $line >> images.reap.tmp
+        fi
+    done
+    comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
+fi
 
 # Use -f flag on docker rm command; forces removal of images that are in Dead
 # status or give errors when removing.
