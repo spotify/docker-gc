@@ -56,6 +56,7 @@ SYSLOG_TAG=${SYSLOG_TAG:=docker-gc}
 DRY_RUN=${DRY_RUN:=0}
 EXCLUDE_DEAD=${EXCLUDE_DEAD:=0}
 PIDFILE=$PID_DIR/dockergc
+EXCLUDE_ALL_CONTAINERS=${EXCLUDE_ALL_CONTAINERS:=0}
 
 exec 3>>$PIDFILE
 if ! flock -x -n 3; then
@@ -133,24 +134,33 @@ function compute_exclude_ids() {
 }
 
 function compute_exclude_container_ids() {
-    # Find containers matching to patterns listed in EXCLUDE_CONTAINERS_FROM_GC file
-    # Implode their values with a \| separator on a single line
-    PROCESSED_EXCLUDES=`cat $EXCLUDE_CONTAINERS_FROM_GC \
-        | xargs \
-        | sed -e 's/ /\|/g'`
-    # The empty string would match everything
-    if [ "$PROCESSED_EXCLUDES" = "" ]; then
-        touch $EXCLUDE_CONTAINER_IDS_FILE
-        return
+    if [[ $EXCLUDE_ALL_CONTAINERS -gt 0 ]]; then
+        # All containers should be excluded, so add all the known ones to
+        # $EXCLUDE_CONTAINER_IDS_FILE
+        $DOCKER ps -a \
+            | awk '{ print $1 }' \
+            | tr -s " " "\012" \
+            | sort -u > $EXCLUDE_CONTAINER_IDS_FILE
+    else
+        # Find containers matching to patterns listed in EXCLUDE_CONTAINERS_FROM_GC file
+        # Implode their values with a \| separator on a single line
+        PROCESSED_EXCLUDES=`cat $EXCLUDE_CONTAINERS_FROM_GC \
+            | xargs \
+            | sed -e 's/ /\|/g'`
+        # The empty string would match everything
+        if [ "$PROCESSED_EXCLUDES" = "" ]; then
+            touch $EXCLUDE_CONTAINER_IDS_FILE
+            return
+        fi
+        # Find all docker images
+        # Filter out with matching names
+        # and put them to $EXCLUDE_CONTAINER_IDS_FILE
+        $DOCKER ps -a \
+            | grep -E "$PROCESSED_EXCLUDES" \
+            | awk '{ print $1 }' \
+            | tr -s " " "\012" \
+            | sort -u > $EXCLUDE_CONTAINER_IDS_FILE
     fi
-    # Find all docker images
-    # Filter out with matching names
-    # and put them to $EXCLUDE_CONTAINER_IDS_FILE
-    $DOCKER ps -a \
-        | grep -E "$PROCESSED_EXCLUDES" \
-        | awk '{ print $1 }' \
-        | tr -s " " "\012" \
-        | sort -u > $EXCLUDE_CONTAINER_IDS_FILE
 }
 
 function log() {
@@ -296,4 +306,3 @@ else
     image_log "Removing image" images.reap
     xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
 fi
-
