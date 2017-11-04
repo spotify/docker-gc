@@ -45,6 +45,7 @@ set -o errexit
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 MINIMUM_IMAGES_TO_SAVE=${MINIMUM_IMAGES_TO_SAVE:=0}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
+REMOVE_CONTAINERS=${REMOVE_CONTAINERS:=1}
 FORCE_CONTAINER_REMOVAL=${FORCE_CONTAINER_REMOVAL:=0}
 FORCE_IMAGE_REMOVAL=${FORCE_IMAGE_REMOVAL:=0}
 DOCKER=${DOCKER:=docker}
@@ -276,11 +277,13 @@ if [[ $FORCE_CONTAINER_REMOVAL -gt 0 ]]; then
     FORCE_CONTAINER_FLAG="-f"
 fi
 # Reap containers.
-if [[ $DRY_RUN -gt 0 ]]; then
-    container_log "The following container would have been removed" containers.reap
-else
-    container_log "Removing containers" containers.reap
-    xargs -n 1 $DOCKER rm $FORCE_CONTAINER_FLAG --volumes=true < containers.reap &>/dev/null || true
+if [[ $REMOVE_CONTAINERS -gt 0 ]]; then
+  if [[ $DRY_RUN -gt 0 ]]; then
+      container_log "The following container would have been removed" containers.reap
+  else
+      container_log "Removing containers" containers.reap
+      xargs -n 1 $DOCKER rm $FORCE_CONTAINER_FLAG --volumes=true < containers.reap &>/dev/null || true
+  fi
 fi
 
 # Use -f flag on docker rmi command; forces removal of images that have multiple tags
