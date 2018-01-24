@@ -182,118 +182,159 @@ function image_log() {
     done < "$filename"
 }
 
-# Change into the state directory (and create it if it doesn't exist)
-if [ ! -d "$STATE_DIR" ]
+function -h {
+  cat <<USAGE
+   USAGE: docker-gc
+
+   -l / --log      log level (default: info)
+   -n / --dry-run  doesn't perform any action
+   -h / --help     prints usage
+
+USAGE
+}; function --help { -h ;}
+
+function msg { out "$*" >&1 ;}
+function out { printf '%s\n' "$*" ;}
+function err { local x=$? ; msg "$*" ; return $(( $x == 0 ? 1 : $x )) ;}
+
+function main {
+
+    while [[ $# -gt 0 ]]
+    do
+      case "$1" in                                      # Munging globals, beware
+        -n|--dry-run)         DRY_RUN="1"; shift 1 ;;
+        -f|--force)           FORCE_IMAGE_REMOVAL="1"; shift 1 ;;
+        -l|--log)             SYSLOG_LEVEL="$2"; shift 2 ;;
+        *)                    err 'Argument error. Please see help: -h' ;;
+      esac
+    done
+
+    # Change into the state directory (and create it if it doesn't exist)
+    if [ ! -d "$STATE_DIR" ]
+    then
+      mkdir -p $STATE_DIR
+    fi
+    cd "$STATE_DIR"
+
+    # Verify that docker is reachable
+    $DOCKER version 1>/dev/null
+
+    # List all currently existing containers
+    $DOCKER ps -a -q --no-trunc | sort | uniq > containers.all
+
+    # List running containers
+    $DOCKER ps -q --no-trunc | sort | uniq > containers.running
+    container_log "Container running" containers.running
+
+    # compute ids of container images to exclude from GC
+    compute_exclude_ids
+
+    # compute ids of containers to exclude from GC
+    compute_exclude_container_ids
+
+    # List containers that are not running
+    comm -23 containers.all containers.running > containers.exited
+
+    if [[ $EXCLUDE_DEAD -gt 0 ]]; then
+        echo "Excluding dead containers"
+        # List dead containers
+        $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead
+        comm -23 containers.exited containers.dead > containers.exited.tmp
+        cat containers.exited.tmp > containers.exited
+    fi
+
+    container_log "Container not running" containers.exited
+
+    # Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
+    > containers.reap.tmp
+    cat containers.exited | while read line
+    do
+        EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
+        ELAPSED=$(elapsed_time $EXITED)
+        if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
+            echo $line >> containers.reap.tmp
+        fi
+    done
+
+    # List containers that we will remove and exclude ids.
+    cat containers.reap.tmp | sort | uniq | grep -v -f $EXCLUDE_CONTAINER_IDS_FILE > containers.reap || true
+
+    # List containers that we will keep.
+    comm -23 containers.all containers.reap > containers.keep
+
+    # List images used by containers that we keep.
+    cat containers.keep |
+    xargs -n 1 $DOCKER inspect -f '{{.Image}}' 2>/dev/null |
+    sort | uniq > images.used
+
+    # List images to reap; images that existed last run and are not in use.
+    echo -n "" > images.all
+    $DOCKER images | while read line
+    do
+        awk '{print $1};'
+    done | sort | uniq | while read line
+    do
+      $DOCKER images --no-trunc --format "{{.ID}} {{.CreatedAt}}" $line \
+        | sort -k 2 -r \
+        | tail -n +$((MINIMUM_IMAGES_TO_SAVE+1)) \
+        | cut -f 1 -d " " \
+        | uniq >> images.all
+    done
+
+    # Add dangling images to list.
+    $DOCKER images --no-trunc --format "{{.ID}}" --filter dangling=true >> images.all
+
+    # Find images that are created at least GRACE_PERIOD_SECONDS ago
+    > images.reap.tmp
+    cat images.all | sort | uniq | while read line
+    do
+        CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
+        ELAPSED=$(elapsed_time $CREATED)
+        if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
+            echo $line >> images.reap.tmp
+        fi
+    done
+    comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
+
+    # Use -f flag on docker rm command; forces removal of images that are in Dead
+    # status or give errors when removing.
+    FORCE_CONTAINER_FLAG=""
+    if [[ $FORCE_CONTAINER_REMOVAL -gt 0 ]]; then
+        FORCE_CONTAINER_FLAG="-f"
+    fi
+    # Reap containers.
+    if [[ $DRY_RUN -gt 0 ]]; then
+        container_log "The following container would have been removed" containers.reap
+    else
+        container_log "Removing containers" containers.reap
+        xargs -n 1 $DOCKER rm $FORCE_CONTAINER_FLAG --volumes=true < containers.reap &>/dev/null || true
+    fi
+
+    # Use -f flag on docker rmi command; forces removal of images that have multiple tags
+    FORCE_IMAGE_FLAG=""
+    if [[ $FORCE_IMAGE_REMOVAL -gt 0 ]]; then
+        FORCE_IMAGE_FLAG="-f"
+    fi
+
+    # Reap images.
+    if [[ $DRY_RUN -gt 0 ]]; then
+        image_log "The following image would have been removed" images.reap
+    else
+        image_log "Removing image" images.reap
+        xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
+    fi
+}
+
+if [[ ${1:-} ]] && declare -F | cut -d' ' -f3 | fgrep -qx -- "${1:-}"
 then
-  mkdir -p $STATE_DIR
-fi
-cd "$STATE_DIR"
-
-# Verify that docker is reachable
-$DOCKER version 1>/dev/null
-
-# List all currently existing containers
-$DOCKER ps -a -q --no-trunc | sort | uniq > containers.all
-
-# List running containers
-$DOCKER ps -q --no-trunc | sort | uniq > containers.running
-container_log "Container running" containers.running
-
-# compute ids of container images to exclude from GC
-compute_exclude_ids
-
-# compute ids of containers to exclude from GC
-compute_exclude_container_ids
-
-# List containers that are not running
-comm -23 containers.all containers.running > containers.exited
-
-if [[ $EXCLUDE_DEAD -gt 0 ]]; then
-    echo "Excluding dead containers"
-    # List dead containers
-    $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead
-    comm -23 containers.exited containers.dead > containers.exited.tmp
-    cat containers.exited.tmp > containers.exited
-fi
-
-container_log "Container not running" containers.exited
-
-# Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
-> containers.reap.tmp
-cat containers.exited | while read line
-do
-    EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
-    ELAPSED=$(elapsed_time $EXITED)
-    if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
-        echo $line >> containers.reap.tmp
-    fi
-done
-
-# List containers that we will remove and exclude ids.
-cat containers.reap.tmp | sort | uniq | grep -v -f $EXCLUDE_CONTAINER_IDS_FILE > containers.reap || true
-
-# List containers that we will keep.
-comm -23 containers.all containers.reap > containers.keep
-
-# List images used by containers that we keep.
-cat containers.keep |
-xargs -n 1 $DOCKER inspect -f '{{.Image}}' 2>/dev/null |
-sort | uniq > images.used
-
-# List images to reap; images that existed last run and are not in use.
-echo -n "" > images.all
-$DOCKER images | while read line
-do
-    awk '{print $1};'
-done | sort | uniq | while read line
-do
-  $DOCKER images --no-trunc --format "{{.ID}} {{.CreatedAt}}" $line \
-    | sort -k 2 -r \
-    | tail -n +$((MINIMUM_IMAGES_TO_SAVE+1)) \
-    | cut -f 1 -d " " \
-    | uniq >> images.all
-done
-
-# Add dangling images to list.
-$DOCKER images --no-trunc --format "{{.ID}}" --filter dangling=true >> images.all
-
-# Find images that are created at least GRACE_PERIOD_SECONDS ago
-> images.reap.tmp
-cat images.all | sort | uniq | while read line
-do
-    CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
-    ELAPSED=$(elapsed_time $CREATED)
-    if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
-        echo $line >> images.reap.tmp
-    fi
-done
-comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
-
-# Use -f flag on docker rm command; forces removal of images that are in Dead
-# status or give errors when removing.
-FORCE_CONTAINER_FLAG=""
-if [[ $FORCE_CONTAINER_REMOVAL -gt 0 ]]; then
-    FORCE_CONTAINER_FLAG="-f"
-fi
-# Reap containers.
-if [[ $DRY_RUN -gt 0 ]]; then
-    container_log "The following container would have been removed" containers.reap
+  case "$1" in
+    -h|--help) : ;;
+    *) ;;
+  esac
+  "$@"
 else
-    container_log "Removing containers" containers.reap
-    xargs -n 1 $DOCKER rm $FORCE_CONTAINER_FLAG --volumes=true < containers.reap &>/dev/null || true
+  main "$@"
 fi
 
-# Use -f flag on docker rmi command; forces removal of images that have multiple tags
-FORCE_IMAGE_FLAG=""
-if [[ $FORCE_IMAGE_REMOVAL -gt 0 ]]; then
-    FORCE_IMAGE_FLAG="-f"
-fi
 
-# Reap images.
-if [[ $DRY_RUN -gt 0 ]]; then
-    image_log "The following image would have been removed" images.reap
-else
-    image_log "Removing image" images.reap
-    xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
-fi
 
