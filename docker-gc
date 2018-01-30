@@ -254,9 +254,6 @@ do
     | uniq >> images.all
 done
 
-# Add dangling images to list.
-$DOCKER images --no-trunc --format "{{.ID}}" --filter dangling=true >> images.all
-
 # Find images that are created at least GRACE_PERIOD_SECONDS ago
 > images.reap.tmp
 cat images.all | sort | uniq | while read line
@@ -268,6 +265,9 @@ do
     fi
 done
 comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
+
+# Remove dangling images and do not exclude them
+$DOCKER images --no-trunc --format "{{.ID}}" --filter dangling=true >> images.reap
 
 # Use -f flag on docker rm command; forces removal of images that are in Dead
 # status or give errors when removing.
