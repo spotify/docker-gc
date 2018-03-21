@@ -28,10 +28,10 @@ container (see [below](#running-as-a-docker-container)).
 
 
 ```sh
-$ apt-get install git devscripts debhelper build-essential dh-make
-$ git clone https://github.com/spotify/docker-gc.git
-$ cd docker-gc
-$ debuild -us -uc -b
+sudo apt-get install git devscripts debhelper build-essential dh-make
+git clone https://github.com/spotify/docker-gc.git
+cd docker-gc
+debuild -us -uc -b
 ```
 
 If you get lintian errors during `debuild`, try `debuild --no-lintian -us -uc -b`.
@@ -40,7 +40,7 @@ If you get lintian errors during `debuild`, try `debuild --no-lintian -us -uc -b
 ## Installing the Debian Package
 
 ```sh
-$ dpkg -i ../docker-gc_0.1.0_all.deb
+sudo dpkg -i ../docker-gc_0.1.0_all.deb
 ```
 
 This installs the `docker-gc` script into `/usr/sbin`. If you want it to
@@ -178,7 +178,7 @@ The docker-gc container requires access to the docker socket in order to
 function, so you need to map it when running, e.g.:
 
 ```sh
-$ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc:ro spotify/docker-gc
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc:ro spotify/docker-gc
 ```
 
 The `/etc` directory is also mapped so that it can read any exclude files
@@ -188,7 +188,7 @@ If your docker daemon is configured to run with user namespace, you will need to
 run the container with [user namespace disabled][disable-user-namespace]:
 
 ```sh
-$ docker run --rm --userns host -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spotify/docker-gc
+docker run --rm --userns host -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spotify/docker-gc
 ```
 
 [disable-user-namespace]: https://docs.docker.com/engine/reference/commandline/dockerd/#disable-user-namespace-for-a-container
