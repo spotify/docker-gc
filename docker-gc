@@ -45,6 +45,7 @@ set -o errexit
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
 MINIMUM_IMAGES_TO_SAVE=${MINIMUM_IMAGES_TO_SAVE:=0}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
+ERROR_CONTAINER_REMOVAL=${ERROR_CONTAINER_REMOVAL:=0}
 FORCE_CONTAINER_REMOVAL=${FORCE_CONTAINER_REMOVAL:=0}
 FORCE_IMAGE_REMOVAL=${FORCE_IMAGE_REMOVAL:=0}
 DOCKER=${DOCKER:=docker}
@@ -222,6 +223,19 @@ container_log "Container not running" containers.exited
 > containers.reap.tmp
 cat containers.exited | while read line
 do
+    # Handle inspect failed containers
+    # Sometimes 'docker inspect' will get error like 'Error response from daemon: devmapper: Unknown device xxxx'
+    INSPECT_RESULT_LINES=$(${DOCKER} inspect ${line} | wc -l)
+    if [[ $INSPECT_RESULT_LINES -lt 5 ]]; then
+        if [[ $ERROR_CONTAINER_REMOVAL -gt 0 ]]; then
+            log "Error, Execute 'docker inspect' failed on container ${line}, this container will be removed"
+            echo $line >> containers.reap.tmp
+        else
+            log "Error, Execute 'docker inspect' failed on container ${line}, skip.(Set ERROR_CONTAINER_REMOVAL=1 to delete)"
+        fi
+        continue
+    fi
+
     EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
     ELAPSED=$(elapsed_time $EXITED)
     if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
