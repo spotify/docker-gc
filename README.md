@@ -13,6 +13,7 @@ A simple Docker container and image garbage collection script.
 
 * Containers that exited more than an hour ago are removed.
 * Images that don't belong to any remaining container after that are removed.
+* Optionally, remove volumes that are not associated to any remaining container after removal (Available only for docker >= 1.9.0)
 
 Although docker normally prevents removal of images that are in use by
 containers, we take extra care to not remove any image tags (e.g., ubuntu:14.04,
@@ -101,6 +102,14 @@ mariadb-data
 drunk_goodall
 ```
 
+### Excluding Volumes From Garbage Collection
+
+There can be occasions where you don't want to remove a dangling volume.
+To enable this functionality you can create a file named
+`/etc/docker-gc-exclude-volumes` (or specify `EXCLUDE_VOLUMES_IDS_FILE` env var
+with any path for such file), containing name patterns (in the `grep` sense),
+one per line, of volumes that will be excluded from garbage collection.
+
 ### Forcing deletion of images that have multiple tags
 
 By default, docker will not remove an image if it is tagged in multiple
@@ -183,6 +192,14 @@ $ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc:ro s
 
 The `/etc` directory is also mapped so that it can read any exclude files
 that you've created.
+
+If you want to remove volumes, you can do so by passing REMOVE_VOLUMES env var set to 1.
+
+```sh
+$ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc -e REMOVE_VOLUMES=1 spotify/docker-gc
+```
+
+If you want to remove volumes only for a specified driver, you can do it by passing VOLUME_DELETE_ONLY_DRIVER env var set to the driver name.
 
 If your docker daemon is configured to run with user namespace, you will need to
 run the container with [user namespace disabled][disable-user-namespace]:
