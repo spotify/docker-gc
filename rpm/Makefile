@@ -8,3 +8,6 @@ rpm:
 		--define "_topdir `pwd`" \
 		--define "_sourcedir %{_topdir}/.." \
 	    -ba ./docker-gc.spec
+
+clean:
+	rm -rfv BUILD BUILDROOT SPECS SRPMS RPMS
