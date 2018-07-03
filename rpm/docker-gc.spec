@@ -1,5 +1,5 @@
 Name: docker-gc
-Version: 0.1.0
+Version: %{version}
 Release: 1%{?dist}
 Summary: Docker garbage collection of containers and images.
 BuildArch: noarch
