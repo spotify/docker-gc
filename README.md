@@ -93,7 +93,7 @@ There can also be containers (for example data only containers) which
 you would like to exclude from garbage collection. To do so, create
 `/etc/docker-gc-exclude-containers`, or if you want the file to be
 read from elsewhere, set the `EXCLUDE_CONTAINERS_FROM_GC` environment
-variable to its location. This file should container name patterns (in
+variable to its location. This file should contain name patterns (in
 the `grep` sense), one per line, such as `mariadb-data`.
 
 An example container excludes file might contain:
