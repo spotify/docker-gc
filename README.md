@@ -1,7 +1,6 @@
 # docker-gc
 
-* [Building](#building)
-* [Installing](#installing)
+* [Installation](#installation)
 * [Usage](#usage)
   * [Excluding Images From Garbage Collection](#excluding-images-from-garbage-collection)
   * [Excluding Containers From Garbage Collection](#excluding-containers-from-garbage-collection)
@@ -25,7 +24,20 @@ still on disk.
 This script is intended to be run as a cron job, but you can also run it as a Docker
 container (see [below](#running-as-a-docker-container)).
 
-## Building the Debian Package
+## Installation
+
+### From PPA
+
+If you're running Ubuntu, you can install docker-gc via the [PPA](https://launchpad.net/~nschloe/+archive/ubuntu/docker-gc-nightly/+packages) by
+```sh
+$ add-apt-repository ppa:nschloe/docker-gc-nightly
+$ apt-get update
+$ apt-get install docker-gc
+```
+
+### Manual
+
+#### Building the Debian Package
 
 
 ```sh
@@ -38,7 +50,7 @@ debuild -us -uc -b
 If you get lintian errors during `debuild`, try `debuild --no-lintian -us -uc -b`.
 
 
-## Installing the Debian Package
+#### Installing the Debian Package
 
 ```sh
 sudo dpkg -i ../docker-gc_0.1.0_all.deb
