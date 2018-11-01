@@ -172,7 +172,7 @@ function container_log() {
 
     while IFS='' read -r containerid
     do
-        log "$prefix $containerid $(${DOCKER} inspect -f {{.Name}} $containerid)"
+        log "$prefix $containerid $(${DOCKER} inspect -f {{.Name}} $containerid --type container)"
     done < "$filename"
 }
 
@@ -182,7 +182,7 @@ function image_log() {
 
     while IFS='' read -r imageid
     do
-        log "$prefix $imageid $(${DOCKER} inspect -f {{.RepoTags}} $imageid)"
+        log "$prefix $imageid $(${DOCKER} inspect -f {{.RepoTags}} $imageid --type image)"
     done < "$filename"
 }
 
@@ -236,7 +236,7 @@ container_log "Container not running" containers.exited
 > containers.reap.tmp
 cat containers.exited | while read line
 do
-    EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
+    EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line} --type container)
     ELAPSED=$(elapsed_time $EXITED)
     if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
         echo $line >> containers.reap.tmp
@@ -251,7 +251,7 @@ comm -23 containers.all containers.reap > containers.keep
 
 # List images used by containers that we keep.
 cat containers.keep |
-xargs -n 1 $DOCKER inspect -f '{{.Image}}' 2>/dev/null |
+xargs -n 1 $DOCKER inspect -f '{{.Image}}' --type container 2>/dev/null |
 sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
@@ -275,7 +275,7 @@ $DOCKER images --no-trunc --format "{{.ID}}" --filter dangling=true >> images.al
 > images.reap.tmp
 cat images.all | sort | uniq | while read line
 do
-    CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
+    CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line} --type image)
     ELAPSED=$(elapsed_time $CREATED)
     if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
         echo $line >> images.reap.tmp
