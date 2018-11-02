@@ -168,7 +168,7 @@ the container will start up, run a single garbage collection, and shut down.
 The image is published as `spotify/docker-gc`.
 
 #### Building the Docker Image
-The image is currently built with Docker 1.12.4, but to build it against a newer
+The image is currently built with Docker 17.09.0-ce, but to build it against a newer
 Docker version (to ensure that the API version of the command-line interface
 matches with your Docker daemon), simply edit [the `ENV DOCKER_VERSION` line in
 `Dockerfile`][dockerfile-ENV] prior to the build step below.
