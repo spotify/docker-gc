@@ -13,6 +13,7 @@ A simple Docker container and image garbage collection script.
 
 * Containers that exited more than an hour ago are removed.
 * Images that don't belong to any remaining container after that are removed.
+* Optionally, remove volumes that are not associated to any remaining container after removal (Available only for docker >= 1.9.0)
 
 Although docker normally prevents removal of images that are in use by
 containers, we take extra care to not remove any image tags (e.g., ubuntu:14.04,
@@ -28,10 +29,10 @@ container (see [below](#running-as-a-docker-container)).
 
 
 ```sh
-$ apt-get install git devscripts debhelper build-essential dh-make
-$ git clone https://github.com/spotify/docker-gc.git
-$ cd docker-gc
-$ debuild -us -uc -b
+sudo apt-get install git devscripts debhelper build-essential dh-make
+git clone https://github.com/spotify/docker-gc.git
+cd docker-gc
+debuild -us -uc -b
 ```
 
 If you get lintian errors during `debuild`, try `debuild --no-lintian -us -uc -b`.
@@ -40,11 +41,11 @@ If you get lintian errors during `debuild`, try `debuild --no-lintian -us -uc -b
 ## Installing the Debian Package
 
 ```sh
-$ dpkg -i ../docker-gc_0.0.4_all.deb
+sudo dpkg -i ../docker-gc_0.1.0_all.deb
 ```
 
 This installs the `docker-gc` script into `/usr/sbin`. If you want it to
-run as a cron job, you can configure it now by creating a root-owned 
+run as a cron job, you can configure it now by creating a root-owned
 executable file `/etc/cron.hourly/docker-gc` with the following contents:
 
 ```
@@ -88,11 +89,11 @@ redis:.*
 
 ### Excluding Containers From Garbage Collection
 
-There can also be containers (for example data only containers) which 
-you would like to exclude from garbage collection. To do so, create 
-`/etc/docker-gc-exclude-containers`, or if you want the file to be 
-read from elsewhere, set the `EXCLUDE_CONTAINERS_FROM_GC` environment 
-variable to its location. This file should container name patterns (in 
+There can also be containers (for example data only containers) which
+you would like to exclude from garbage collection. To do so, create
+`/etc/docker-gc-exclude-containers`, or if you want the file to be
+read from elsewhere, set the `EXCLUDE_CONTAINERS_FROM_GC` environment
+variable to its location. This file should contain name patterns (in
 the `grep` sense), one per line, such as `mariadb-data`.
 
 An example container excludes file might contain:
@@ -100,6 +101,14 @@ An example container excludes file might contain:
 mariadb-data
 drunk_goodall
 ```
+
+### Excluding Volumes From Garbage Collection
+
+There can be occasions where you don't want to remove a dangling volume.
+To enable this functionality you can create a file named
+`/etc/docker-gc-exclude-volumes` (or specify `EXCLUDE_VOLUMES_IDS_FILE` env var
+with any path for such file), containing name patterns (in the `grep` sense),
+one per line, of volumes that will be excluded from garbage collection.
 
 ### Forcing deletion of images that have multiple tags
 
@@ -159,7 +168,7 @@ the container will start up, run a single garbage collection, and shut down.
 The image is published as `spotify/docker-gc`.
 
 #### Building the Docker Image
-The image is currently built with Docker 1.6.2, but to build it against a newer
+The image is currently built with Docker 17.09.0-ce, but to build it against a newer
 Docker version (to ensure that the API version of the command-line interface
 matches with your Docker daemon), simply edit [the `ENV DOCKER_VERSION` line in
 `Dockerfile`][dockerfile-ENV] prior to the build step below.
@@ -178,8 +187,25 @@ The docker-gc container requires access to the docker socket in order to
 function, so you need to map it when running, e.g.:
 
 ```sh
-$ docker run --rm --privileged -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc:ro spotify/docker-gc
+docker run --rm --privileged -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc:ro spotify/docker-gc
 ```
 
 The `/etc` directory is also mapped so that it can read any exclude files
 that you've created.
+
+If you want to remove volumes, you can do so by passing REMOVE_VOLUMES env var set to 1.
+
+```sh
+$ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc -e REMOVE_VOLUMES=1 spotify/docker-gc
+```
+
+If you want to remove volumes only for a specified driver, you can do it by passing VOLUME_DELETE_ONLY_DRIVER env var set to the driver name.
+
+If your docker daemon is configured to run with user namespace, you will need to
+run the container with [user namespace disabled][disable-user-namespace]:
+
+```sh
+docker run --rm --userns host -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/etc spotify/docker-gc
+```
+
+[disable-user-namespace]: https://docs.docker.com/engine/reference/commandline/dockerd/#disable-user-namespace-for-a-container
