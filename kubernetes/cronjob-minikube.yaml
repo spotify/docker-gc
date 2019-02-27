@@ -1,0 +1,27 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: docker-gc
+spec:
+  schedule: "* */1 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: gc
+            image: spotify/docker-gc
+            volumeMounts:
+            - name: docker-sock
+              mountPath: "/var/run/docker.sock"
+            - name: etc
+              readOnly: true
+              mountPath: "/etc"
+          restartPolicy: OnFailure
+          volumes:
+          - name: docker-sock
+            hostPath:
+              path: /var/run/docker.sock
+          - name: etc
+            hostPath:
+              path: /etc

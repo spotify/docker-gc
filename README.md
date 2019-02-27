@@ -209,3 +209,19 @@ docker run --rm --userns host -v /var/run/docker.sock:/var/run/docker.sock -v /e
 ```
 
 [disable-user-namespace]: https://docs.docker.com/engine/reference/commandline/dockerd/#disable-user-namespace-for-a-container
+
+#### Running on a local Kubernetes cluster
+
+docker-gc can be used as a simple way to keep things in check on a local development Kubernetes cluster, such as microk8s or minikube.
+
+##### Minikube
+
+```sh
+kubectl apply -f kubernetes/cronjob-minikube.yaml
+```
+
+##### Microk8s
+
+```sh
+kubectl apply -f kubernetes/cronjob-microk8s.yaml
+```
