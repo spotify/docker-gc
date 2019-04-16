@@ -1,3 +1,2 @@
-sudo: required
 language: generic
-script: ./tests/test.sh
+script: sudo ./tests/test.sh
