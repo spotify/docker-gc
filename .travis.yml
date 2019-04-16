@@ -1,2 +1,2 @@
 language: generic
-script: sudo ./tests/test-.sh
+script: sudo ./tests/run-tests.sh
