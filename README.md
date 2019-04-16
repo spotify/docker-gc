@@ -1,4 +1,4 @@
-# docker-gc
+# docker-gc [![Build Status](https://travis-ci.org/mesosphere/docker-gc.svg?branch=master)](https://travis-ci.org/mesosphere/docker-gc)
 
 * [Building](#building)
 * [Installing](#installing)
