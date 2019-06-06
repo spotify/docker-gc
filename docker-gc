@@ -344,9 +344,9 @@ if [[ $REMOVE_VOLUMES -gt 0 ]]; then
         fi
     else
         if [[ -z "$VOLUME_DELETE_ONLY_DRIVER" ]]; then
-            $DOCKER volume ls --filter "dangling=true" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap
+            $DOCKER volume ls --filter "dangling=true" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap || true
         else
-            $DOCKER volume ls --filter "dangling=true" --filter "driver=$VOLUME_DELETE_ONLY_DRIVER" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap
+            $DOCKER volume ls --filter "dangling=true" --filter "driver=$VOLUME_DELETE_ONLY_DRIVER" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap || true
         fi
 
         if [[ $DRY_RUN -gt 0 ]]; then
