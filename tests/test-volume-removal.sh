@@ -9,6 +9,6 @@ REMOVE_VOLUMES=1 ./docker-gc
 
 # when a volume exists it should be removed
 docker volume create
-if [[ $(docker volume ls --format "{{.Name}}" | wc -l) != 1 ]] ; then echo "Volume count is not 1" && exit 1 ; fi
+if [[ $(docker volume ls --format "{{.Name}}" | wc -l) != 1 ]]; then echo "Volume count is not 1" && exit 1; fi
 REMOVE_VOLUMES=1 ./docker-gc
-if [[ $(docker volume ls --format "{{.Name}}" | wc -l) != 0 ]] ; then echo "Volume has not been removed" && exit 1 ; fi
+if [[ $(docker volume ls --format "{{.Name}}" | wc -l) != 0 ]]; then echo "Volume has not been removed" && exit 1; fi
