@@ -87,10 +87,10 @@ EXCLUDE_CONTAINER_IDS_FILE="exclude_container_ids"
 function date_parse() {
   if date --utc >/dev/null 2>&1; then
     # GNU/date
-    echo $(date -u --date "${1}" "+%s")
+    date -u --date "${1}" "+%s"
   else
     # BSD/date
-    echo $(date -j -u -f "%F %T" "${1}" "+%s")
+    date -j -u -f "%F %T" "${1}" "+%s"
   fi
 }
 
