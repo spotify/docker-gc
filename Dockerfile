@@ -1,4 +1,4 @@
-FROM gliderlabs/alpine:3.2
+FROM alpine:3.2
 
 ENV DOCKER_VERSION 17.09.0-ce
 
