@@ -1,4 +1,4 @@
-FROM alpine:3.2
+FROM alpine:3.10
 
 ENV DOCKER_VERSION 17.09.0-ce
 
