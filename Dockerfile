@@ -7,9 +7,7 @@ RUN apk --update add bash curl \
   && cd /tmp/ \
   && curl -sSL -O https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz \
   && tar zxf docker-${DOCKER_VERSION}.tgz \
-  && mkdir -p /usr/local/bin/ \
   && mv $(find -name 'docker' -type f) /usr/local/bin/ \
-  && chmod +x /usr/local/bin/docker \
   && apk del curl \
   && rm -rf /tmp/* \
   && rm -rf /var/cache/apk/*
