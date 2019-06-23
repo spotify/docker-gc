@@ -1,6 +1,6 @@
 FROM alpine:3.10
 
-ENV DOCKER_VERSION 17.09.0-ce
+ENV DOCKER_VERSION 18.09.6
 
 RUN apk --no-cache add bash \
   && wget -q https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz \
