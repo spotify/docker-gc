@@ -72,14 +72,12 @@ trap "rm -f -- '$PIDFILE'" EXIT
 echo $$ > $PIDFILE
 
 EXCLUDE_FROM_GC=${EXCLUDE_FROM_GC:=/etc/docker-gc-exclude}
-if [ ! -f "$EXCLUDE_FROM_GC" ]
-then
+if [ ! -f "$EXCLUDE_FROM_GC" ]; then
   EXCLUDE_FROM_GC=/dev/null
 fi
 
 EXCLUDE_CONTAINERS_FROM_GC=${EXCLUDE_CONTAINERS_FROM_GC:=/etc/docker-gc-exclude-containers}
-if [ ! -f "$EXCLUDE_CONTAINERS_FROM_GC" ]
-then
+if [ ! -f "$EXCLUDE_CONTAINERS_FROM_GC" ]; then
   EXCLUDE_CONTAINERS_FROM_GC=/dev/null
 fi
 
@@ -197,8 +195,7 @@ function volumes_log() {
 }
 
 # Change into the state directory (and create it if it doesn't exist)
-if [ ! -d "$STATE_DIR" ]
-then
+if [ ! -d "$STATE_DIR" ]; then
   mkdir -p $STATE_DIR
 fi
 cd "$STATE_DIR"
@@ -333,8 +330,7 @@ if [[ $REMOVE_VOLUMES -gt 0 ]]; then
   VOLUMES=$?
   set -e
   # If docker volume ls fails, then is probably not supported by either client or server
-  if [ ! -f "$EXCLUDE_VOLUMES_IDS_FILE" ]
-  then
+  if [ ! -f "$EXCLUDE_VOLUMES_IDS_FILE" ]; then
     EXCLUDE_VOLUMES_IDS_FILE=/dev/null
   fi
 
