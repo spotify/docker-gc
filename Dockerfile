@@ -3,11 +3,10 @@ FROM alpine:3.10
 ENV DOCKER_VERSION 17.09.0-ce
 
 RUN apk --no-cache add bash \
-  && cd /tmp/ \
   && wget -q https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz \
   && tar zxf docker-${DOCKER_VERSION}.tgz \
   && mv docker/docker /usr/local/bin/ \
-  && rm -rf /tmp/*
+  && rm -rf docker/ docker-${DOCKER_VERSION}.tgz
 
 COPY ./docker-gc /docker-gc
 
