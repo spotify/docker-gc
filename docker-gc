@@ -137,8 +137,7 @@ function compute_exclude_ids() {
 function compute_exclude_container_ids() {
   # Find containers matching to patterns listed in EXCLUDE_CONTAINERS_FROM_GC file
   # Implode their values with a \| separator on a single line
-  PROCESSED_EXCLUDES=`cat $EXCLUDE_CONTAINERS_FROM_GC \
-    | xargs \
+  PROCESSED_EXCLUDES=`xargs < $EXCLUDE_CONTAINERS_FROM_GC \
     | sed -e 's/ /\|/g'`
   # The empty string would match everything
   if [ "$PROCESSED_EXCLUDES" = "" ]; then
@@ -224,31 +223,30 @@ if [[ $EXCLUDE_DEAD -gt 0 ]]; then
   # List dead containers
   $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead
   comm -23 containers.exited containers.dead > containers.exited.tmp
-  cat containers.exited.tmp > containers.exited
+  cp containers.exited.tmp containers.exited
 fi
 
 container_log "Container not running" containers.exited
 
 # Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
 > containers.reap.tmp
-cat containers.exited | while read line
+while read line
 do
   EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
   ELAPSED=$(elapsed_time $EXITED)
   if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
     echo $line >> containers.reap.tmp
   fi
-done
+done < containers.exited
 
 # List containers that we will remove and exclude ids.
-cat containers.reap.tmp | sort | uniq | grep -v -f $EXCLUDE_CONTAINER_IDS_FILE > containers.reap || true
+sort containers.reap.tmp | uniq | grep -v -f $EXCLUDE_CONTAINER_IDS_FILE > containers.reap || true
 
 # List containers that we will keep.
 comm -23 containers.all containers.reap > containers.keep
 
 # List images used by containers that we keep.
-cat containers.keep |
-xargs -n 1 $DOCKER inspect -f '{{.Image}}' 2>/dev/null |
+xargs -n 1 $DOCKER inspect -f '{{.Image}}' < containers.keep 2>/dev/null |
 sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
@@ -270,7 +268,7 @@ $DOCKER images --no-trunc --format "{{.ID}}" --filter dangling=true >> images.al
 
 # Find images that are created at least GRACE_PERIOD_SECONDS ago
 > images.reap.tmp
-cat images.all | sort | uniq | while read line
+sort images.all | uniq | while read line
 do
   # the `docker inspect` command might fail sometimes due to issues like
   # https://github.com/moby/moby/issues/35747 - don't let that abort this script
