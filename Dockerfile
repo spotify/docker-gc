@@ -1,18 +1,12 @@
-FROM gliderlabs/alpine:3.2
+FROM alpine:3.10
 
-ENV DOCKER_VERSION 17.09.0-ce
+ENV DOCKER_VERSION 18.09.6
 
-# We get curl so that we can avoid a separate ADD to fetch the Docker binary, and then we'll remove it
-RUN apk --update add bash curl \
-  && cd /tmp/ \
-  && curl -sSL -O https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz \
+RUN apk --no-cache add bash \
+  && wget -q https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz \
   && tar zxf docker-${DOCKER_VERSION}.tgz \
-  && mkdir -p /usr/local/bin/ \
-  && mv $(find -name 'docker' -type f) /usr/local/bin/ \
-  && chmod +x /usr/local/bin/docker \
-  && apk del curl \
-  && rm -rf /tmp/* \
-  && rm -rf /var/cache/apk/*
+  && mv docker/docker /usr/local/bin/ \
+  && rm -rf docker/ docker-${DOCKER_VERSION}.tgz
 
 COPY ./docker-gc /docker-gc
 
