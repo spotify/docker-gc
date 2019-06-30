@@ -1,4 +1,14 @@
-# docker-gc [![Build Status](https://travis-ci.org/mesosphere/docker-gc.svg?branch=master)](https://travis-ci.org/mesosphere/docker-gc)
+# docker-gc
+
+[![Build Status](https://travis-ci.com/spotify/docker-gc.svg?branch=master)](https://travis-ci.com/spotify/docker-gc)
+[![License](https://img.shields.io/github/license/spotify/docker-client.svg)](LICENSE)
+
+## Status: inactive
+
+**Spotify no longer uses this project internally. If you'd like to take over as
+the maintainer for this project, please let us know by creating an issue and
+@mentioning us.**
+
 
 * [Building](#building)
 * [Installing](#installing)
