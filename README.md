@@ -154,13 +154,13 @@ FORCE_CONTAINER_REMOVAL=1 docker-gc
 
 ### Excluding Recently Exited Containers and Images From Garbage Collection
 
-By default, docker-gc will not remove a container if it exited less than 3600 seconds (1 hour) ago. In some cases you might need to change this setting (e.g. you need exited containers to stick around for debugging for several days). Set the `GRACE_PERIOD_SECONDS` variable to override this default.
+By default, docker-gc will not remove a container if it exited less than 3600 seconds (1 hour) ago. In some cases you might need to change this setting (e.g. you need exited containers to stick around for debugging for several days). Set the `CONTAINER_GRACE_PERIOD_SECONDS` variable to override this default.
 
 ```
-GRACE_PERIOD_SECONDS=86400 docker-gc
+CONTAINER_GRACE_PERIOD_SECONDS=86400 docker-gc
 ```
 
-This setting also prevents the removal of images that have been created less than `GRACE_PERIOD_SECONDS` seconds ago.
+You can also prevent the removal of images that have been created less than `IMAGE_GRACE_PERIOD_SECONDS` seconds ago.
 
 ### Dry run
 By default, docker-gc will proceed with deletion of containers and images. To test your command-line options set the `DRY_RUN` variable to override this default.

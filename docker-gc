@@ -43,6 +43,8 @@ set -o nounset
 set -o errexit
 
 GRACE_PERIOD_SECONDS=${GRACE_PERIOD_SECONDS:=3600}
+CONTAINER_GRACE_PERIOD_SECONDS=${CONTAINER_GRACE_PERIOD_SECONDS:=$GRACE_PERIOD_SECONDS}
+IMAGE_GRACE_PERIOD_SECONDS=${IMAGE_GRACE_PERIOD_SECONDS:=$GRACE_PERIOD_SECONDS}
 MINIMUM_IMAGES_TO_SAVE=${MINIMUM_IMAGES_TO_SAVE:=0}
 STATE_DIR=${STATE_DIR:=/var/lib/docker-gc}
 REMOVE_ASSOCIATED_VOLUME=${REMOVE_ASSOCIATED_VOLUME=1}
@@ -232,13 +234,13 @@ fi
 
 container_log "Container not running" containers.exited
 
-# Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
+# Find exited containers that finished at least CONTAINER_GRACE_PERIOD_SECONDS ago
 > containers.reap.tmp
 cat containers.exited | while read line
 do
     EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
     ELAPSED=$(elapsed_time $EXITED)
-    if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
+    if [[ $ELAPSED -gt $CONTAINER_GRACE_PERIOD_SECONDS ]]; then
         echo $line >> containers.reap.tmp
     fi
 done
@@ -271,13 +273,13 @@ done
 # Add dangling images to list.
 $DOCKER images --no-trunc --format "{{.ID}}" --filter dangling=true >> images.all
 
-# Find images that are created at least GRACE_PERIOD_SECONDS ago
+# Find images that are created at least IMAGE_GRACE_PERIOD_SECONDS ago
 > images.reap.tmp
 cat images.all | sort | uniq | while read line
 do
     CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
     ELAPSED=$(elapsed_time $CREATED)
-    if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
+    if [[ $ELAPSED -gt $IMAGE_GRACE_PERIOD_SECONDS ]]; then
         echo $line >> images.reap.tmp
     fi
 done
