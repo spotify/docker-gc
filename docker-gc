@@ -275,10 +275,17 @@ $DOCKER images --no-trunc --format "{{.ID}}" --filter dangling=true >> images.al
 > images.reap.tmp
 cat images.all | sort | uniq | while read line
 do
+    # the `docker inspect` command might fail sometimes due to issues like
+    # https://github.com/moby/moby/issues/35747 - don't let that abort this script
+    set +o errexit
     CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
-    ELAPSED=$(elapsed_time $CREATED)
-    if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
-        echo $line >> images.reap.tmp
+    retval=$?
+    set -o errexit
+    if [ $retval -eq 0 ]; then
+        ELAPSED=$(elapsed_time $CREATED)
+        if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
+            echo $line >> images.reap.tmp
+        fi
     fi
 done
 comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
