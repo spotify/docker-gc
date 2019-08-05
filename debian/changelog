@@ -1,3 +1,9 @@
+docker-gc (2:0.2.0) unstable; urgency=low
+
+  * allow `docker inspect -f {{Created}}` to fail 
+
+ -- Matt Brown <mattbrown@spotify.com>  Mon, 05 Aug 2019 17:14:00 +0000
+
 docker-gc (2:0.1.0) unstable; urgency=low
 
   * Fixes:
