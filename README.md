@@ -3,11 +3,11 @@
 [![Build Status](https://travis-ci.com/spotify/docker-gc.svg?branch=master)](https://travis-ci.com/spotify/docker-gc)
 [![License](https://img.shields.io/github/license/spotify/docker-client.svg)](LICENSE)
 
-## Status: inactive
+## Status: mature
 
-**Spotify no longer uses this project internally. If you'd like to take over as
-the maintainer for this project, please let us know by creating an issue and
-@mentioning us.**
+**We're not developing or accepting new features.**
+
+Consider using [`docker system prune`][prune] instead.
 
 
 * [Building](#building)
@@ -219,3 +219,4 @@ docker run --rm --userns host -v /var/run/docker.sock:/var/run/docker.sock -v /e
 ```
 
 [disable-user-namespace]: https://docs.docker.com/engine/reference/commandline/dockerd/#disable-user-namespace-for-a-container
+[prune]: https://docs.docker.com/engine/reference/commandline/system_prune/
