@@ -91,8 +91,12 @@ function date_parse {
     # GNU/date
     echo $(date -u --date "${1}" "+%s")
   else
+    if [ "${1}" == "0001-01-01 00:00:00" ] ; then # avoid
+        echo $(date -j -u -f "%F %T" "2001-01-01 00:00:00" "+%s")
+    else
     # BSD/date
-    echo $(date -j -u -f "%F %T" "${1}" "+%s")
+        echo $(date -j -u -f "%F %T" "${1}" "+%s")
+    fi
   fi
 }
 
