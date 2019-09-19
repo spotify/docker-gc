@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Copyright (c) 2014 Spotify AB.
 #
@@ -86,7 +86,7 @@ fi
 EXCLUDE_IDS_FILE="exclude_ids"
 EXCLUDE_CONTAINER_IDS_FILE="exclude_container_ids"
 
-function date_parse {
+date_parse() {
   if date --utc >/dev/null 2>&1; then
     # GNU/date
     echo $(date -u --date "${1}" "+%s")
@@ -97,7 +97,7 @@ function date_parse {
 }
 
 # Elapsed time since a docker timestamp, in seconds
-function elapsed_time() {
+elapsed_time() {
     # Docker 1.5.0 datetime format is 2015-07-03T02:39:00.390284991
     # Docker 1.7.0 datetime format is 2015-07-03 02:39:00.390284991 +0000 UTC
     utcnow=$(date -u "+%s")
@@ -108,7 +108,7 @@ function elapsed_time() {
     echo $(($utcnow - $epoch))
 }
 
-function compute_exclude_ids() {
+compute_exclude_ids() {
     # Find images that match patterns in the EXCLUDE_FROM_GC file and put their
     # id prefixes into $EXCLUDE_IDS_FILE, prefixed with ^
 
@@ -136,7 +136,7 @@ function compute_exclude_ids() {
         | sed 's/^/^(sha256:)?/' > $EXCLUDE_IDS_FILE
 }
 
-function compute_exclude_container_ids() {
+compute_exclude_container_ids() {
     # Find containers matching to patterns listed in EXCLUDE_CONTAINERS_FROM_GC file
     # Implode their values with a \| separator on a single line
     PROCESSED_EXCLUDES=`cat $EXCLUDE_CONTAINERS_FROM_GC \
