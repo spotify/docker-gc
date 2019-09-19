@@ -238,6 +238,12 @@ cat containers.exited | while read line
 do
     EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
     ELAPSED=$(elapsed_time $EXITED)
+    # If the container never started/finished and only was created
+    # we compare the created date.
+    if [ $EXITED  = '"0001-01-01T00:00:00Z"' ] ; then
+      CREATEDAT=$(${DOCKER} inspect -f "{{json .Created}}" ${line})
+      ELAPSED=$(elapsed_time $CREATEDAT)
+    fi
     if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
         echo $line >> containers.reap.tmp
     fi
