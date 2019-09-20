@@ -113,27 +113,39 @@ function compute_exclude_ids() {
     # id prefixes into $EXCLUDE_IDS_FILE, prefixed with ^
 
     PROCESSED_EXCLUDES="processed_excludes.tmp"
-    # Take each line and put a space at the beginning and end, so when we
-    # grep for them below, it will effectively be: "match either repo:tag
-    # or imageid".  Also delete blank lines or lines that only contain
-    # whitespace
-    sed 's/^\(.*\)$/ \1 /' $EXCLUDE_FROM_GC | sed '/^ *$/d' > $PROCESSED_EXCLUDES
-    # The following looks a bit of a mess, but here's what it does:
-    # 1. Get images
-    # 2. Skip header line
-    # 3. Turn columnar display of 'REPO TAG IMAGEID ....' to 'REPO:TAG IMAGEID'
-    # 4. find lines that contain things mentioned in PROCESSED_EXCLUDES
-    # 5. Grab the image id from the line
-    # 6. Prepend ^ to the beginning of each line
+    rm -f $EXCLUDE_IDS_FILE
+    # Delete blank lines or lines that only contain whitespace.
+    sed '/^[\s\t]*$/d' $EXCLUDE_FROM_GC > $PROCESSED_EXCLUDES
 
-    # What this does is make grep patterns to match image ids mentioned by
-    # either repo:tag or image id for later greppage
-    $DOCKER images \
-        | tail -n+2 \
-        | sed 's/^\([^ ]*\) *\([^ ]*\) *\([^ ]*\).*/ \1:\2 \3 /' \
-        | grep -f $PROCESSED_EXCLUDES 2>/dev/null \
-        | cut -d' ' -f3 \
-        | sed 's/^/^(sha256:)?/' > $EXCLUDE_IDS_FILE
+    # Build an associative array of repo:tag -> imageid
+    declare -A images
+    while read -r i; do
+        key=$(echo "$i" | awk '{ print $1":"$2}')
+        value=$(echo "$i" | awk '{ print $3 }')
+        images["$key"]="$value"
+    done < <($DOCKER images | tail -n+2)
+
+    # Pass the keys (repo:tag) through regex
+    for i in "${!images[@]}"
+    do
+        if [ ! -z $(echo "$i" | grep -E -f "$PROCESSED_EXCLUDES") ]
+        then
+            echo "${images[$i]}" >> $EXCLUDE_IDS_FILE
+        fi
+    done
+
+    # Pass the values (imageid) through regex
+    for i in "${images[@]}"
+    do
+        if [ ! -z $(echo "$i" | grep -E -f "$PROCESSED_EXCLUDES") ]
+        then
+            echo "$i" >> $EXCLUDE_IDS_FILE
+        fi
+    done
+
+    # Remove the duplicates and prepend the expected "sha256:" prefix.
+    sort -u $EXCLUDE_IDS_FILE | sed 's/^/^(sha256:)?/' > $PROCESSED_EXCLUDES
+    mv $PROCESSED_EXCLUDES $EXCLUDE_IDS_FILE
 }
 
 function compute_exclude_container_ids() {
