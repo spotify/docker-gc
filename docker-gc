@@ -72,133 +72,129 @@ trap "rm -f -- '$PIDFILE'" EXIT
 echo $$ > $PIDFILE
 
 EXCLUDE_FROM_GC=${EXCLUDE_FROM_GC:=/etc/docker-gc-exclude}
-if [ ! -f "$EXCLUDE_FROM_GC" ]
-then
+if [ ! -f "$EXCLUDE_FROM_GC" ]; then
   EXCLUDE_FROM_GC=/dev/null
 fi
 
 EXCLUDE_CONTAINERS_FROM_GC=${EXCLUDE_CONTAINERS_FROM_GC:=/etc/docker-gc-exclude-containers}
-if [ ! -f "$EXCLUDE_CONTAINERS_FROM_GC" ]
-then
+if [ ! -f "$EXCLUDE_CONTAINERS_FROM_GC" ]; then
   EXCLUDE_CONTAINERS_FROM_GC=/dev/null
 fi
 
 EXCLUDE_IDS_FILE="exclude_ids"
 EXCLUDE_CONTAINER_IDS_FILE="exclude_container_ids"
 
-function date_parse {
+function date_parse() {
   if date --utc >/dev/null 2>&1; then
     # GNU/date
-    echo $(date -u --date "${1}" "+%s")
+    date -u --date "${1}" "+%s"
   else
     # BSD/date
-    echo $(date -j -u -f "%F %T" "${1}" "+%s")
+    date -j -u -f "%F %T" "${1}" "+%s"
   fi
 }
 
 # Elapsed time since a docker timestamp, in seconds
 function elapsed_time() {
-    # Docker 1.5.0 datetime format is 2015-07-03T02:39:00.390284991
-    # Docker 1.7.0 datetime format is 2015-07-03 02:39:00.390284991 +0000 UTC
-    utcnow=$(date -u "+%s")
-    replace_q="${1#\"}"
-    without_ms="${replace_q:0:19}"
-    replace_t="${without_ms/T/ }"
-    epoch=$(date_parse "${replace_t}")
-    echo $(($utcnow - $epoch))
+  # Docker 1.5.0 datetime format is 2015-07-03T02:39:00.390284991
+  # Docker 1.7.0 datetime format is 2015-07-03 02:39:00.390284991 +0000 UTC
+  utcnow=$(date -u "+%s")
+  replace_q="${1#\"}"
+  without_ms="${replace_q:0:19}"
+  replace_t="${without_ms/T/ }"
+  epoch=$(date_parse "${replace_t}")
+  echo $(($utcnow - $epoch))
 }
 
 function compute_exclude_ids() {
-    # Find images that match patterns in the EXCLUDE_FROM_GC file and put their
-    # id prefixes into $EXCLUDE_IDS_FILE, prefixed with ^
+  # Find images that match patterns in the EXCLUDE_FROM_GC file and put their
+  # id prefixes into $EXCLUDE_IDS_FILE, prefixed with ^
 
-    PROCESSED_EXCLUDES="processed_excludes.tmp"
-    # Take each line and put a space at the beginning and end, so when we
-    # grep for them below, it will effectively be: "match either repo:tag
-    # or imageid".  Also delete blank lines or lines that only contain
-    # whitespace
-    sed 's/^\(.*\)$/ \1 /' $EXCLUDE_FROM_GC | sed '/^ *$/d' > $PROCESSED_EXCLUDES
-    # The following looks a bit of a mess, but here's what it does:
-    # 1. Get images
-    # 2. Skip header line
-    # 3. Turn columnar display of 'REPO TAG IMAGEID ....' to 'REPO:TAG IMAGEID'
-    # 4. find lines that contain things mentioned in PROCESSED_EXCLUDES
-    # 5. Grab the image id from the line
-    # 6. Prepend ^ to the beginning of each line
+  PROCESSED_EXCLUDES="processed_excludes.tmp"
+  # Take each line and put a space at the beginning and end, so when we
+  # grep for them below, it will effectively be: "match either repo:tag
+  # or imageid".  Also delete blank lines or lines that only contain
+  # whitespace
+  sed 's/^\(.*\)$/ \1 /' $EXCLUDE_FROM_GC | sed '/^ *$/d' > $PROCESSED_EXCLUDES
+  # The following looks a bit of a mess, but here's what it does:
+  # 1. Get images
+  # 2. Skip header line
+  # 3. Turn columnar display of 'REPO TAG IMAGEID ....' to 'REPO:TAG IMAGEID'
+  # 4. find lines that contain things mentioned in PROCESSED_EXCLUDES
+  # 5. Grab the image id from the line
+  # 6. Prepend ^ to the beginning of each line
 
-    # What this does is make grep patterns to match image ids mentioned by
-    # either repo:tag or image id for later greppage
-    $DOCKER images \
-        | tail -n+2 \
-        | sed 's/^\([^ ]*\) *\([^ ]*\) *\([^ ]*\).*/ \1:\2 \3 /' \
-        | grep -f $PROCESSED_EXCLUDES 2>/dev/null \
-        | cut -d' ' -f3 \
-        | sed 's/^/^(sha256:)?/' > $EXCLUDE_IDS_FILE
+  # What this does is make grep patterns to match image ids mentioned by
+  # either repo:tag or image id for later greppage
+  $DOCKER images \
+    | tail -n+2 \
+    | sed 's/^\([^ ]*\) *\([^ ]*\) *\([^ ]*\).*/ \1:\2 \3 /' \
+    | grep -f $PROCESSED_EXCLUDES 2>/dev/null \
+    | cut -d' ' -f3 \
+    | sed 's/^/^(sha256:)?/' > $EXCLUDE_IDS_FILE
 }
 
 function compute_exclude_container_ids() {
-    # Find containers matching to patterns listed in EXCLUDE_CONTAINERS_FROM_GC file
-    # Implode their values with a \| separator on a single line
-    PROCESSED_EXCLUDES=`cat $EXCLUDE_CONTAINERS_FROM_GC \
-        | xargs \
-        | sed -e 's/ /\|/g'`
-    # The empty string would match everything
-    if [ "$PROCESSED_EXCLUDES" = "" ]; then
-        touch $EXCLUDE_CONTAINER_IDS_FILE
-        return
-    fi
-    # Find all docker images
-    # Filter out with matching names
-    # and put them to $EXCLUDE_CONTAINER_IDS_FILE
-    $DOCKER ps -a \
-        | grep -E "$PROCESSED_EXCLUDES" \
-        | awk '{ print $1 }' \
-        | tr -s " " "\012" \
-        | sort -u > $EXCLUDE_CONTAINER_IDS_FILE
+  # Find containers matching to patterns listed in EXCLUDE_CONTAINERS_FROM_GC file
+  # Implode their values with a \| separator on a single line
+  PROCESSED_EXCLUDES=`xargs < $EXCLUDE_CONTAINERS_FROM_GC \
+    | sed -e 's/ /\|/g'`
+  # The empty string would match everything
+  if [ "$PROCESSED_EXCLUDES" = "" ]; then
+    touch $EXCLUDE_CONTAINER_IDS_FILE
+    return
+  fi
+  # Find all docker images
+  # Filter out with matching names
+  # and put them to $EXCLUDE_CONTAINER_IDS_FILE
+  $DOCKER ps -a \
+    | grep -E "$PROCESSED_EXCLUDES" \
+    | awk '{ print $1 }' \
+    | tr -s " " "\012" \
+    | sort -u > $EXCLUDE_CONTAINER_IDS_FILE
 }
 
 function log() {
-    msg=$1
-    if [[ $LOG_TO_SYSLOG -gt 0 ]]; then
-        logger -i -t "$SYSLOG_TAG" -p "$SYSLOG_FACILITY.$SYSLOG_LEVEL" "$msg"
-    else
-        echo "[$(date +'%Y-%m-%dT%H:%M:%S')] [INFO] : $msg"
-    fi
+  msg=$1
+  if [[ $LOG_TO_SYSLOG -gt 0 ]]; then
+    logger -i -t "$SYSLOG_TAG" -p "$SYSLOG_FACILITY.$SYSLOG_LEVEL" "$msg"
+  else
+    echo "[$(date +'%Y-%m-%dT%H:%M:%S')] [INFO] : $msg"
+  fi
 }
 
 function container_log() {
-    prefix=$1
-    filename=$2
+  prefix=$1
+  filename=$2
 
-    while IFS='' read -r containerid
-    do
-        log "$prefix $containerid $(${DOCKER} inspect -f {{.Name}} $containerid)"
-    done < "$filename"
+  while IFS='' read -r containerid
+  do
+    log "$prefix $containerid $(${DOCKER} inspect -f {{.Name}} $containerid)"
+  done < "$filename"
 }
 
 function image_log() {
-    prefix=$1
-    filename=$2
+  prefix=$1
+  filename=$2
 
-    while IFS='' read -r imageid
-    do
-        log "$prefix $imageid $(${DOCKER} inspect -f {{.RepoTags}} $imageid)"
-    done < "$filename"
+  while IFS='' read -r imageid
+  do
+    log "$prefix $imageid $(${DOCKER} inspect -f {{.RepoTags}} $imageid)"
+  done < "$filename"
 }
 
 function volumes_log() {
-    prefix=$1
-    filename=$2
+  prefix=$1
+  filename=$2
 
-    while IFS='' read -r volumeid
-    do
-        log "$prefix $volumeid"
-    done < "$filename"
+  while IFS='' read -r volumeid
+  do
+    log "$prefix $volumeid"
+  done < "$filename"
 }
 
 # Change into the state directory (and create it if it doesn't exist)
-if [ ! -d "$STATE_DIR" ]
-then
+if [ ! -d "$STATE_DIR" ]; then
   mkdir -p $STATE_DIR
 fi
 cd "$STATE_DIR"
@@ -223,42 +219,41 @@ compute_exclude_container_ids
 comm -23 containers.all containers.running > containers.exited
 
 if [[ $EXCLUDE_DEAD -gt 0 ]]; then
-    echo "Excluding dead containers"
-    # List dead containers
-    $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead
-    comm -23 containers.exited containers.dead > containers.exited.tmp
-    cat containers.exited.tmp > containers.exited
+  echo "Excluding dead containers"
+  # List dead containers
+  $DOCKER ps -q -a -f status=dead | sort | uniq > containers.dead
+  comm -23 containers.exited containers.dead > containers.exited.tmp
+  cp containers.exited.tmp containers.exited
 fi
 
 container_log "Container not running" containers.exited
 
 # Find exited containers that finished at least GRACE_PERIOD_SECONDS ago
 > containers.reap.tmp
-cat containers.exited | while read line
+while read line
 do
-    EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
-    ELAPSED=$(elapsed_time $EXITED)
-    if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
-        echo $line >> containers.reap.tmp
-    fi
-done
+  EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
+  ELAPSED=$(elapsed_time $EXITED)
+  if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
+    echo $line >> containers.reap.tmp
+  fi
+done < containers.exited
 
 # List containers that we will remove and exclude ids.
-cat containers.reap.tmp | sort | uniq | grep -v -f $EXCLUDE_CONTAINER_IDS_FILE > containers.reap || true
+sort containers.reap.tmp | uniq | grep -v -f $EXCLUDE_CONTAINER_IDS_FILE > containers.reap || true
 
 # List containers that we will keep.
 comm -23 containers.all containers.reap > containers.keep
 
 # List images used by containers that we keep.
-cat containers.keep |
-xargs -n 1 $DOCKER inspect -f '{{.Image}}' 2>/dev/null |
+xargs -n 1 $DOCKER inspect -f '{{.Image}}' < containers.keep 2>/dev/null |
 sort | uniq > images.used
 
 # List images to reap; images that existed last run and are not in use.
 echo -n "" > images.all
 $DOCKER images | while read line
 do
-    awk '{print $1};'
+  awk '{print $1};'
 done | sort | uniq | while read line
 do
   $DOCKER images --no-trunc --format "{{.ID}} {{.CreatedAt}}" $line \
@@ -273,20 +268,20 @@ $DOCKER images --no-trunc --format "{{.ID}}" --filter dangling=true >> images.al
 
 # Find images that are created at least GRACE_PERIOD_SECONDS ago
 > images.reap.tmp
-cat images.all | sort | uniq | while read line
+sort images.all | uniq | while read line
 do
-    # the `docker inspect` command might fail sometimes due to issues like
-    # https://github.com/moby/moby/issues/35747 - don't let that abort this script
-    set +o errexit
-    CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
-    retval=$?
-    set -o errexit
-    if [ $retval -eq 0 ]; then
-        ELAPSED=$(elapsed_time $CREATED)
-        if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
-            echo $line >> images.reap.tmp
-        fi
+  # the `docker inspect` command might fail sometimes due to issues like
+  # https://github.com/moby/moby/issues/35747 - don't let that abort this script
+  set +o errexit
+  CREATED=$(${DOCKER} inspect -f "{{.Created}}" ${line})
+  retval=$?
+  set -o errexit
+  if [ $retval -eq 0 ]; then
+    ELAPSED=$(elapsed_time $CREATED)
+    if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
+      echo $line >> images.reap.tmp
     fi
+  fi
 done
 comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.reap || true
 
@@ -294,73 +289,72 @@ comm -23 images.reap.tmp images.used | grep -E -v -f $EXCLUDE_IDS_FILE > images.
 # status or give errors when removing.
 FORCE_CONTAINER_FLAG=""
 if [[ $FORCE_CONTAINER_REMOVAL -gt 0 ]]; then
-    FORCE_CONTAINER_FLAG="-f"
+  FORCE_CONTAINER_FLAG="-f"
 fi
 
 # Remove associated volume, so that we won't create new orphan volumes.
 if [[ $REMOVE_ASSOCIATED_VOLUME -gt 0 ]]; then
-    if [[ -z $FORCE_CONTAINER_FLAG ]]; then
-        FORCE_CONTAINER_FLAG="-v"
-    else
-        FORCE_CONTAINER_FLAG=$FORCE_CONTAINER_FLAG"v"
-    fi
+  if [[ -z $FORCE_CONTAINER_FLAG ]]; then
+    FORCE_CONTAINER_FLAG="-v"
+  else
+    FORCE_CONTAINER_FLAG=$FORCE_CONTAINER_FLAG"v"
+  fi
 fi
 # Reap containers.
 if [[ $DRY_RUN -gt 0 ]]; then
-    container_log "The following container would have been removed" containers.reap
+  container_log "The following container would have been removed" containers.reap
 else
-    container_log "Removing containers" containers.reap
-    xargs -n 1 $DOCKER rm $FORCE_CONTAINER_FLAG --volumes=true < containers.reap &>/dev/null || true
+  container_log "Removing containers" containers.reap
+  xargs -n 1 $DOCKER rm $FORCE_CONTAINER_FLAG --volumes=true < containers.reap &>/dev/null || true
 fi
 
 # Use -f flag on docker rmi command; forces removal of images that have multiple tags
 FORCE_IMAGE_FLAG=""
 if [[ $FORCE_IMAGE_REMOVAL -gt 0 ]]; then
-    FORCE_IMAGE_FLAG="-f"
+  FORCE_IMAGE_FLAG="-f"
 fi
 
 # Reap images.
 if [[ $DRY_RUN -gt 0 ]]; then
-    image_log "The following image would have been removed" images.reap
+  image_log "The following image would have been removed" images.reap
 else
-    image_log "Removing image" images.reap
-    xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
+  image_log "Removing image" images.reap
+  xargs -n 1 $DOCKER rmi $FORCE_IMAGE_FLAG < images.reap &>/dev/null || true
 fi
 
 if [[ $REMOVE_VOLUMES -gt 0 ]]; then
+  set +e
+  $DOCKER volume ls --filter "dangling=true" -q &> /dev/null
+  VOLUMES=$?
+  set -e
+  # If docker volume ls fails, then is probably not supported by either client or server
+  if [ ! -f "$EXCLUDE_VOLUMES_IDS_FILE" ]; then
+    EXCLUDE_VOLUMES_IDS_FILE=/dev/null
+  fi
+
+  if [[ $VOLUMES -gt 0 ]]; then
     set +e
-    $DOCKER volume ls --filter "dangling=true" -q &> /dev/null
-    VOLUMES=$?
+    VERSION=$($DOCKER version --format="Client: {{.Client.Version}} Server: {{.Server.Version}}" 2&>/dev/null)
+    FORMAT=$?
     set -e
-    # If docker volume ls fails, then is probably not supported by either client or server
-    if [ ! -f "$EXCLUDE_VOLUMES_IDS_FILE" ]
-    then
-        EXCLUDE_VOLUMES_IDS_FILE=/dev/null
-    fi
-
-    if [[ $VOLUMES -gt 0 ]]; then
-        set +e
-        VERSION=$($DOCKER version --format="Client: {{.Client.Version}} Server: {{.Server.Version}}" 2&>/dev/null)
-        FORMAT=$?
-        set -e
-        if [[ $FORMAT -gt 0 ]]; then
-            log "Removing volumes is not supported for Docker < 1.9.0"
-        else
-            MESSAGE="Removing volumes is not supported for for docker version "$($DOCKER version --format="Client: {{.Client.Version}} Server: {{.Server.Version}}") &
-            log "$MESSAGE"
-        fi
+    if [[ $FORMAT -gt 0 ]]; then
+      log "Removing volumes is not supported for Docker < 1.9.0"
     else
-        if [[ -z "$VOLUME_DELETE_ONLY_DRIVER" ]]; then
-            $DOCKER volume ls --filter "dangling=true" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap || true
-        else
-            $DOCKER volume ls --filter "dangling=true" --filter "driver=$VOLUME_DELETE_ONLY_DRIVER" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap || true
-        fi
-
-        if [[ $DRY_RUN -gt 0 ]]; then
-            volumes_log "The following volume would have been removed" volumes.reap
-        else
-            volumes_log "Removing volume" volumes.reap
-            xargs -n 1 $DOCKER volume rm < volumes.reap &>/dev/null || true
-        fi
+      MESSAGE="Removing volumes is not supported for for docker version "$($DOCKER version --format="Client: {{.Client.Version}} Server: {{.Server.Version}}") &
+      log "$MESSAGE"
     fi
+  else
+    if [[ -z "$VOLUME_DELETE_ONLY_DRIVER" ]]; then
+      $DOCKER volume ls --filter "dangling=true" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap || true
+    else
+      $DOCKER volume ls --filter "dangling=true" --filter "driver=$VOLUME_DELETE_ONLY_DRIVER" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap || true
+    fi
+
+    if [[ $DRY_RUN -gt 0 ]]; then
+      volumes_log "The following volume would have been removed" volumes.reap
+    else
+      volumes_log "Removing volume" volumes.reap
+      xargs -n 1 $DOCKER volume rm < volumes.reap &>/dev/null || true
+    fi
+  fi
 fi
